@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "paths": {
+      "@firebase/auth": ["../node_modules/@firebase/auth/dist/rn/index.rn.d.ts"]
+    },
+    "jsx": "react-native",
+    "lib": ["ES2022", "DOM"],
+    "types": ["react"],
+    "noEmit": true,
+    "allowJs": false
+  },
+  "include": ["src/**/*", "App.tsx", "index.ts"],
+  "references": [{ "path": "../shared" }]
+}

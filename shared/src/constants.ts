@@ -1,0 +1,9 @@
+export const SLOT_MINUTES = 30;
+export const SALON_TIMEZONE = 'Europe/Tirane';
+export const DEFAULT_BOOKING_HORIZON_DAYS = 14;
+export const DEFAULT_CANCELLATION_WINDOW_HOURS = 1;
+export const REMINDER_MINUTES_BEFORE = 60;
+export const RETENTION_DAYS = 31;
+export const MAX_DAILY_BOOKINGS_PER_CLIENT = 2;
+export const DAYS_OF_WEEK = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
+export type DayOfWeek = (typeof DAYS_OF_WEEK)[number];

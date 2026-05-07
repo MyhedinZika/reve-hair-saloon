@@ -1,0 +1,17 @@
+{
+  "name": "salon-booking",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "shared",
+    "functions",
+    "mobile"
+  ],
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "typecheck:shared": "npm run typecheck --workspace shared",
+    "typecheck:functions": "npm run typecheck --workspace functions",
+    "typecheck:mobile": "npm run typecheck --workspace mobile",
+    "build:shared": "npm run build --workspace shared"
+  }
+}

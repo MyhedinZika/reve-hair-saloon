@@ -1,0 +1,116 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && userRole() == 'admin';
+    }
+
+    function isBarber() {
+      return isSignedIn() && userRole() == 'barber';
+    }
+
+    function isClient() {
+      return isSignedIn() && userRole() == 'client';
+    }
+
+    match /users/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin() || isBarber());
+      allow create: if isSignedIn() && request.auth.uid == uid
+        && request.resource.data.role == 'client';
+      allow update: if isSignedIn() && request.auth.uid == uid
+        && request.resource.data.role == resource.data.role;
+      allow delete: if isAdmin();
+    }
+
+    match /barbers/{barberId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /services/{serviceId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /workingHours/{id} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    match /breaks/{id} {
+      allow read: if isAdmin() || isBarber();
+      allow write: if false;
+    }
+
+    match /timeOffs/{id} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    match /appointments/{id} {
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        (isBarber() && resource.data.barberId == request.auth.uid) ||
+        (isClient() && resource.data.clientId == request.auth.uid)
+      );
+      allow write: if false;
+    }
+
+    match /slotClaims/{id} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /messages/{id} {
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        resource.data.senderId == request.auth.uid ||
+        exists(/databases/$(database)/documents/appointments/$(resource.data.appointmentId)) &&
+        (
+          get(/databases/$(database)/documents/appointments/$(resource.data.appointmentId)).data.barberId == request.auth.uid ||
+          get(/databases/$(database)/documents/appointments/$(resource.data.appointmentId)).data.clientId == request.auth.uid
+        )
+      );
+      allow create: if isSignedIn()
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 2000
+        && exists(/databases/$(database)/documents/appointments/$(request.resource.data.appointmentId))
+        && (
+          get(/databases/$(database)/documents/appointments/$(request.resource.data.appointmentId)).data.barberId == request.auth.uid ||
+          get(/databases/$(database)/documents/appointments/$(request.resource.data.appointmentId)).data.clientId == request.auth.uid
+        )
+        && get(/databases/$(database)/documents/appointments/$(request.resource.data.appointmentId)).data.status == 'confirmed';
+      allow update, delete: if false;
+    }
+
+    match /blockedUsers/{id} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /notifications/{id} {
+      allow read: if isSignedIn() && resource.data.recipientUid == request.auth.uid;
+      allow update: if isSignedIn()
+        && resource.data.recipientUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow create, delete: if false;
+    }
+
+    match /settings/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

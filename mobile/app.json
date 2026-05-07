@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Salon",
+    "slug": "salon",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.salon.app"
+    },
+    "android": {
+      "package": "com.salon.app",
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": ["expo-notifications"]
+  }
+}
