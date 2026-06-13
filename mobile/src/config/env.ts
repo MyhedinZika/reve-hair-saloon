@@ -20,5 +20,5 @@ export const firebaseConfig: FirebaseConfig = {
 
 export const googleWebClientId = '1099495106269-5qscn0d953u8cbqesbv6d003omh23rkm.apps.googleusercontent.com';
 
-export const useEmulator = false;
+export const useEmulator = true;
 export const emulatorHost = 'localhost';

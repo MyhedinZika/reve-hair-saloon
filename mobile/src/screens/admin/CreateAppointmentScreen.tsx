@@ -12,7 +12,6 @@ import {
 import {
   BodyText,
   Button,
-  Heading,
   Input,
   MutedText,
   Pill,
@@ -22,9 +21,9 @@ import { colors, font, radius, spacing } from '../../theme/tokens';
 import { api } from '../../api/functions';
 import { stores } from '../../api/firestore';
 import { formatDuration, formatPrice, formatTimeOfDay } from '../../util/format';
-import type { AdminStackParamList } from '../../navigation/types';
+import type { AdminManageStackParamList } from '../../navigation/types';
 
-type Props = NativeStackScreenProps<AdminStackParamList, 'CreateAppointment'>;
+type Props = NativeStackScreenProps<AdminManageStackParamList, 'CreateAppointment'>;
 type Mode = 'registered' | 'guest';
 
 export function CreateAppointmentScreen({ navigation }: Props): React.JSX.Element {
@@ -120,7 +119,6 @@ export function CreateAppointmentScreen({ navigation }: Props): React.JSX.Elemen
 
   return (
     <Screen>
-      <Heading level={2} style={{ marginBottom: spacing.lg }}>New appointment</Heading>
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl, gap: spacing.md }}>
         <MutedText>Barber</MutedText>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>

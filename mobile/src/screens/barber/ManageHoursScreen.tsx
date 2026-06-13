@@ -33,9 +33,10 @@ const LABEL: Record<DayOfWeek, string> = {
 
 interface ManageHoursScreenProps {
   barberId?: string;
+  hideTitle?: boolean;
 }
 
-export function ManageHoursScreen({ barberId }: ManageHoursScreenProps): React.JSX.Element {
+export function ManageHoursScreen({ barberId, hideTitle }: ManageHoursScreenProps): React.JSX.Element {
   const { profile } = useAuth();
   const myBarber = useMyBarber(profile?.uid ?? null);
   const targetBarberId = barberId ?? myBarber?.id ?? null;
@@ -47,18 +48,29 @@ export function ManageHoursScreen({ barberId }: ManageHoursScreenProps): React.J
 
   useEffect(() => {
     if (!targetBarberId) return;
+    let cancelled = false;
     setLoaded(false);
     const q = query(
       collection(firestore, 'workingHours'),
       where('barberId', '==', targetBarberId),
       where('dayOfWeek', '==', day),
     );
-    getDocs(q).then((snap) => {
-      const first = snap.docs[0];
-      const data = first ? (first.data() as WorkingHoursDoc) : null;
-      setBlocks(data?.blocks ?? []);
-      setLoaded(true);
-    });
+    getDocs(q)
+      .then((snap) => {
+        if (cancelled) return;
+        const first = snap.docs[0];
+        const data = first ? (first.data() as WorkingHoursDoc) : null;
+        setBlocks(data?.blocks ?? []);
+        setLoaded(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setBlocks([]);
+        setLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [targetBarberId, day]);
 
   const save = async (): Promise<void> => {
@@ -77,7 +89,7 @@ export function ManageHoursScreen({ barberId }: ManageHoursScreenProps): React.J
   if (!targetBarberId) {
     return (
       <Screen>
-        <Heading level={2}>Working hours</Heading>
+        {hideTitle ? null : <Heading level={2}>Working hours</Heading>}
         <MutedText style={{ marginTop: spacing.lg }}>No barber profile linked.</MutedText>
       </Screen>
     );
@@ -85,19 +97,17 @@ export function ManageHoursScreen({ barberId }: ManageHoursScreenProps): React.J
 
   return (
     <Screen>
-      <Heading level={2} style={{ marginBottom: spacing.lg }}>Working hours</Heading>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: spacing.sm, paddingBottom: spacing.md }}
-      >
-        {DAYS_OF_WEEK.map((d) => (
-          <Pill key={d} label={LABEL[d]} selected={d === day} onPress={() => setDay(d)} />
-        ))}
-      </ScrollView>
-
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl, gap: spacing.md }}>
+        {hideTitle ? null : (
+          <Heading level={2} style={{ marginBottom: spacing.lg }}>Working hours</Heading>
+        )}
+
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+          {DAYS_OF_WEEK.map((d) => (
+            <Pill key={d} label={LABEL[d]} selected={d === day} onPress={() => setDay(d)} />
+          ))}
+        </View>
+
         {!loaded ? (
           <MutedText>Loading…</MutedText>
         ) : (

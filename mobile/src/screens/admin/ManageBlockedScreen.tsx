@@ -63,7 +63,6 @@ export function ManageBlockedScreen(): React.JSX.Element {
 
   return (
     <Screen>
-      <Heading level={2} style={{ marginBottom: spacing.lg }}>Blocked users</Heading>
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl, gap: spacing.md }}>
         {items.length === 0 ? <MutedText>No blocked users.</MutedText> : null}
         {items.map((u) => (

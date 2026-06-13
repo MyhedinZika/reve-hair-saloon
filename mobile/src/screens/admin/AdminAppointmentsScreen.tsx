@@ -1,12 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
-import type { CompositeScreenProps } from '@react-navigation/native';
-import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AppointmentDoc, AppointmentStatus } from '@salon/shared';
 import {
   BodyText,
-  Heading,
   MutedText,
   Pill,
   Screen,
@@ -14,12 +11,9 @@ import {
 import { colors, font, radius, spacing } from '../../theme/tokens';
 import { stores } from '../../api/firestore';
 import { formatDateLong, formatTimeOfDay } from '../../util/format';
-import type { AdminStackParamList, AdminTabParamList } from '../../navigation/types';
+import type { AdminAppointmentsStackParamList } from '../../navigation/types';
 
-type Props = CompositeScreenProps<
-  BottomTabScreenProps<AdminTabParamList, 'Appointments'>,
-  NativeStackScreenProps<AdminStackParamList>
->;
+type Props = NativeStackScreenProps<AdminAppointmentsStackParamList, 'AppointmentsList'>;
 
 type Filter = 'upcoming' | 'past' | 'cancelled';
 
@@ -65,7 +59,6 @@ export function AdminAppointmentsScreen({ navigation }: Props): React.JSX.Elemen
 
   return (
     <Screen>
-      <Heading level={2} style={{ marginBottom: spacing.lg }}>Appointments</Heading>
       <View style={{ flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md }}>
         {(['upcoming', 'past', 'cancelled'] as Filter[]).map((f) => (
           <Pill key={f} label={FILTER_LABEL[f]} selected={filter === f} onPress={() => setFilter(f)} />

@@ -1,11 +1,8 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import type { NativeStackNavigationOptions } from '@react-navigation/native-stack';
 import { HomeScreen } from '../screens/client/HomeScreen';
-import { SelectBarberScreen } from '../screens/client/SelectBarberScreen';
-import { SelectServicesScreen } from '../screens/client/SelectServicesScreen';
-import { SelectDateScreen } from '../screens/client/SelectDateScreen';
-import { SelectTimeScreen } from '../screens/client/SelectTimeScreen';
-import { ConfirmScreen } from '../screens/client/ConfirmScreen';
+import { BookingScreen } from '../screens/client/BookingScreen';
 import { ConfirmedScreen } from '../screens/client/ConfirmedScreen';
 import { AppointmentsScreen } from '../screens/client/AppointmentsScreen';
 import { AppointmentDetailsScreen } from '../screens/client/AppointmentDetailsScreen';
@@ -15,7 +12,7 @@ import { ClientInboxScreen } from '../screens/client/ClientInboxScreen';
 import { ProfileScreen } from '../screens/shared/ProfileScreen';
 import { useAuth } from '../auth/AuthContext';
 import { useUnreadCount } from '../notifications/useUnreadCount';
-import { colors } from '../theme/tokens';
+import { colors, font } from '../theme/tokens';
 import type {
   BookingStackParamList,
   ClientStackParamList,
@@ -26,15 +23,31 @@ const Tab = createBottomTabNavigator<ClientTabParamList>();
 const Stack = createNativeStackNavigator<ClientStackParamList>();
 const BookingStack = createNativeStackNavigator<BookingStackParamList>();
 
+const stackScreenOptions: NativeStackNavigationOptions = {
+  headerStyle: { backgroundColor: colors.bg },
+  headerTintColor: colors.ink,
+  headerTitleStyle: {
+    color: colors.ink,
+    fontWeight: font.weight.semibold,
+    fontSize: font.size.lg,
+  },
+  headerShadowVisible: false,
+  headerBackTitle: 'Back',
+};
+
 function BookingFlow(): React.JSX.Element {
   return (
-    <BookingStack.Navigator screenOptions={{ headerShown: false }}>
-      <BookingStack.Screen name="SelectBarber" component={SelectBarberScreen} />
-      <BookingStack.Screen name="SelectServices" component={SelectServicesScreen} />
-      <BookingStack.Screen name="SelectDate" component={SelectDateScreen} />
-      <BookingStack.Screen name="SelectTime" component={SelectTimeScreen} />
-      <BookingStack.Screen name="Confirm" component={ConfirmScreen} />
-      <BookingStack.Screen name="Confirmed" component={ConfirmedScreen} />
+    <BookingStack.Navigator screenOptions={stackScreenOptions}>
+      <BookingStack.Screen
+        name="Book"
+        component={BookingScreen}
+        options={{ title: 'Book appointment' }}
+      />
+      <BookingStack.Screen
+        name="Confirmed"
+        component={ConfirmedScreen}
+        options={{ headerShown: false }}
+      />
     </BookingStack.Navigator>
   );
 }

@@ -72,7 +72,6 @@ export function ManageServicesScreen(): React.JSX.Element {
 
   return (
     <Screen>
-      <Heading level={2} style={{ marginBottom: spacing.lg }}>Services</Heading>
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl, gap: spacing.md }}>
         {services.map((s) => (
           <Card key={s.id}>

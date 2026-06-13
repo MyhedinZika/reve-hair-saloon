@@ -6,15 +6,7 @@ export type AuthStackParamList = {
 };
 
 export type BookingStackParamList = {
-  SelectBarber: undefined;
-  SelectServices: { barberId: string };
-  SelectDate: { barberId: string; serviceIds: string[] };
-  SelectTime: { barberId: string; serviceIds: string[]; date: string };
-  Confirm: {
-    barberId: string;
-    serviceIds: string[];
-    startAt: number;
-  };
+  Book: undefined;
   Confirmed: { appointmentId: string };
 };
 
@@ -47,21 +39,37 @@ export type BarberStackParamList = {
   ManageBreaks: undefined;
 };
 
-export type AdminTabParamList = {
-  Dashboard: undefined;
-  Appointments: undefined;
-  Manage: undefined;
-  Inbox: undefined;
-  Profile: undefined;
+type AdminDetailParams = {
+  AppointmentDetails: { appointmentId: string };
+  Chat: { appointmentId: string };
 };
 
-export type AdminStackParamList = {
-  Tabs: NavigatorScreenParams<AdminTabParamList>;
-  AppointmentDetails: { appointmentId: string };
-  CreateAppointment: undefined;
+export type AdminDashboardStackParamList = {
+  Dashboard: undefined;
+};
+
+export type AdminAppointmentsStackParamList = AdminDetailParams & {
+  AppointmentsList: undefined;
+};
+
+export type AdminManageStackParamList = {
+  ManageHub: undefined;
   ManageBarbers: undefined;
+  ManageBarberHours: { barberId: string; barberName: string };
   ManageServices: undefined;
   ManageSettings: undefined;
   ManageBlocked: undefined;
-  Chat: { appointmentId: string };
+  CreateAppointment: undefined;
+};
+
+export type AdminInboxStackParamList = AdminDetailParams & {
+  Inbox: undefined;
+};
+
+export type AdminTabParamList = {
+  Dashboard: NavigatorScreenParams<AdminDashboardStackParamList>;
+  Appointments: NavigatorScreenParams<AdminAppointmentsStackParamList>;
+  Manage: NavigatorScreenParams<AdminManageStackParamList>;
+  Inbox: NavigatorScreenParams<AdminInboxStackParamList>;
+  Profile: undefined;
 };

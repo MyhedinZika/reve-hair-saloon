@@ -7,7 +7,6 @@ import {
   Button,
   Card,
   Divider,
-  Heading,
   MutedText,
   Screen,
 } from '../../theme/components';
@@ -20,9 +19,12 @@ import {
   formatPrice,
   formatTimeOfDay,
 } from '../../util/format';
-import type { AdminStackParamList } from '../../navigation/types';
+type AppointmentDetailsParamList = {
+  AppointmentDetails: { appointmentId: string };
+  Chat: { appointmentId: string };
+};
 
-type Props = NativeStackScreenProps<AdminStackParamList, 'AppointmentDetails'>;
+type Props = NativeStackScreenProps<AppointmentDetailsParamList, 'AppointmentDetails'>;
 
 export function AdminAppointmentDetailsScreen({
   navigation,
@@ -92,7 +94,6 @@ export function AdminAppointmentDetailsScreen({
 
   return (
     <Screen>
-      <Heading level={2} style={{ marginBottom: spacing.lg }}>Appointment</Heading>
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }}>
         <Card>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>

@@ -9,7 +9,6 @@ import {
 } from '@salon/shared';
 import {
   Button,
-  Heading,
   Input,
   MutedText,
   Screen,
@@ -84,7 +83,6 @@ export function ManageSettingsScreen(): React.JSX.Element {
 
   return (
     <Screen>
-      <Heading level={2} style={{ marginBottom: spacing.lg }}>Settings</Heading>
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }}>
         <Input label="Salon name" value={salonName} onChangeText={setSalonName} />
         <Input label="Address" value={address} onChangeText={setAddress} />

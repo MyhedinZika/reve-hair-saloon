@@ -1,20 +1,14 @@
 import { ScrollView } from 'react-native';
-import type { CompositeScreenProps } from '@react-navigation/native';
-import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Button, Heading, Screen } from '../../theme/components';
+import { Button, Screen } from '../../theme/components';
 import { spacing } from '../../theme/tokens';
-import type { AdminStackParamList, AdminTabParamList } from '../../navigation/types';
+import type { AdminManageStackParamList } from '../../navigation/types';
 
-type Props = CompositeScreenProps<
-  BottomTabScreenProps<AdminTabParamList, 'Manage'>,
-  NativeStackScreenProps<AdminStackParamList>
->;
+type Props = NativeStackScreenProps<AdminManageStackParamList, 'ManageHub'>;
 
 export function ManageHubScreen({ navigation }: Props): React.JSX.Element {
   return (
     <Screen>
-      <Heading level={2} style={{ marginBottom: spacing.lg }}>Manage</Heading>
       <ScrollView contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.xxl }}>
         <Button
           title="New appointment"

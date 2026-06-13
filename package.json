@@ -8,9 +8,12 @@
     "mobile"
   ],
   "scripts": {
+    "pretypecheck": "npm run build:shared",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "typecheck:shared": "npm run typecheck --workspace shared",
+    "pretypecheck:functions": "npm run build:shared",
     "typecheck:functions": "npm run typecheck --workspace functions",
+    "pretypecheck:mobile": "npm run build:shared",
     "typecheck:mobile": "npm run typecheck --workspace mobile",
     "build:shared": "npm run build --workspace shared"
   }

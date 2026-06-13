@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   collection,
   doc,
+  getDocs,
   onSnapshot,
+  query,
   setDoc,
   updateDoc,
+  where,
 } from 'firebase/firestore';
 import type { BarberDoc, ServiceDoc } from '@salon/shared';
 import {
@@ -18,14 +23,16 @@ import {
   Pill,
   Screen,
 } from '../../theme/components';
-import { font, spacing } from '../../theme/tokens';
+import { colors, font, spacing } from '../../theme/tokens';
 import { firestore } from '../../config/firebase';
+import type { AdminManageStackParamList } from '../../navigation/types';
 
 export function ManageBarbersScreen(): React.JSX.Element {
+  const navigation = useNavigation<NativeStackNavigationProp<AdminManageStackParamList>>();
   const [barbers, setBarbers] = useState<BarberDoc[]>([]);
   const [services, setServices] = useState<ServiceDoc[]>([]);
   const [name, setName] = useState('');
-  const [userId, setUserId] = useState('');
+  const [email, setEmail] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
 
@@ -43,16 +50,28 @@ export function ManageBarbersScreen(): React.JSX.Element {
   }, []);
 
   const create = async (): Promise<void> => {
-    if (!name.trim() || !userId.trim()) {
-      Alert.alert('Missing fields', 'Display name and user id are required.');
+    if (!name.trim() || !email.trim()) {
+      Alert.alert('Missing fields', 'Display name and email are required.');
       return;
     }
     setBusy(true);
     try {
+      const usersSnap = await getDocs(
+        query(collection(firestore, 'users'), where('email', '==', email.trim().toLowerCase())),
+      );
+      if (usersSnap.empty) {
+        Alert.alert(
+          'User not found',
+          'No account with that email. The barber must sign up first, then try again.',
+        );
+        return;
+      }
+      const userDoc = usersSnap.docs[0]!;
+      const targetUid = userDoc.id;
       const ref = doc(collection(firestore, 'barbers'));
       const newDoc: BarberDoc = {
         id: ref.id,
-        userId: userId.trim(),
+        userId: targetUid,
         displayName: name.trim(),
         avatarUrl: null,
         serviceIds: Array.from(selected),
@@ -60,9 +79,9 @@ export function ManageBarbersScreen(): React.JSX.Element {
         createdAt: Date.now(),
       };
       await setDoc(ref, newDoc);
-      await updateDoc(doc(firestore, 'users', userId.trim()), { role: 'barber' }).catch(() => undefined);
+      await updateDoc(doc(firestore, 'users', targetUid), { role: 'barber' }).catch(() => undefined);
       setName('');
-      setUserId('');
+      setEmail('');
       setSelected(new Set());
     } catch (err) {
       Alert.alert('Could not create', err instanceof Error ? err.message : 'Unknown error');
@@ -81,10 +100,9 @@ export function ManageBarbersScreen(): React.JSX.Element {
 
   return (
     <Screen>
-      <Heading level={2} style={{ marginBottom: spacing.lg }}>Barbers</Heading>
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl, gap: spacing.md }}>
         {barbers.map((b) => (
-          <Card key={b.id}>
+          <Card key={b.id} style={{ gap: spacing.md }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <View>
                 <BodyText style={{ fontWeight: font.weight.semibold, fontSize: font.size.lg }}>
@@ -95,11 +113,21 @@ export function ManageBarbersScreen(): React.JSX.Element {
                 </MutedText>
               </View>
               <Pressable onPress={() => void toggleActive(b)}>
-                <BodyText style={{ color: b.active ? '#B91C1C' : '#15803D', fontWeight: font.weight.semibold }}>
+                <BodyText style={{ color: b.active ? colors.danger : colors.success, fontWeight: font.weight.semibold }}>
                   {b.active ? 'Deactivate' : 'Activate'}
                 </BodyText>
               </Pressable>
             </View>
+            <Button
+              title="Edit working hours"
+              variant="secondary"
+              onPress={() =>
+                navigation.navigate('ManageBarberHours', {
+                  barberId: b.id,
+                  barberName: b.displayName,
+                })
+              }
+            />
           </Card>
         ))}
 
@@ -107,10 +135,11 @@ export function ManageBarbersScreen(): React.JSX.Element {
         <Card style={{ gap: spacing.sm }}>
           <Input label="Display name" value={name} onChangeText={setName} />
           <Input
-            label="User uid (their Firebase Auth uid)"
-            value={userId}
-            onChangeText={setUserId}
+            label="Email (must be an existing signed-up account)"
+            value={email}
+            onChangeText={setEmail}
             autoCapitalize="none"
+            keyboardType="email-address"
           />
           <MutedText>Services</MutedText>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>

@@ -33,7 +33,7 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
   }, [profile]);
 
   const startBooking = (): void => {
-    navigation.navigate('Booking', { screen: 'SelectBarber' });
+    navigation.navigate('Booking', { screen: 'Book' });
   };
 
   return (

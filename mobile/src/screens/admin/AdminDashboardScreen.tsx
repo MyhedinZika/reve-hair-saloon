@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
-import type { CompositeScreenProps } from '@react-navigation/native';
-import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import {
   endOfDayUtcMs,
   startOfDayUtcMs,
@@ -19,14 +18,10 @@ import {
 } from '../../theme/components';
 import { font, spacing } from '../../theme/tokens';
 import { stores } from '../../api/firestore';
-import type { AdminStackParamList, AdminTabParamList } from '../../navigation/types';
+import type { AdminTabParamList } from '../../navigation/types';
 
-type Props = CompositeScreenProps<
-  BottomTabScreenProps<AdminTabParamList, 'Dashboard'>,
-  NativeStackScreenProps<AdminStackParamList>
->;
-
-export function AdminDashboardScreen({ navigation }: Props): React.JSX.Element {
+export function AdminDashboardScreen(): React.JSX.Element {
+  const navigation = useNavigation<BottomTabNavigationProp<AdminTabParamList>>();
   const [appointments, setAppointments] = useState<AppointmentDoc[]>([]);
 
   useEffect(() => {
@@ -52,8 +47,6 @@ export function AdminDashboardScreen({ navigation }: Props): React.JSX.Element {
 
   return (
     <Screen>
-      <Heading level={2} style={{ marginBottom: spacing.lg }}>Dashboard</Heading>
-
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl, gap: spacing.md }}>
         <View style={{ flexDirection: 'row', gap: spacing.md }}>
           <StatCard label="Today" value={stats.todayCount} />
@@ -65,27 +58,27 @@ export function AdminDashboardScreen({ navigation }: Props): React.JSX.Element {
           <Heading level={3}>Quick actions</Heading>
           <Button
             title="New appointment"
-            onPress={() => navigation.navigate('CreateAppointment')}
+            onPress={() => navigation.navigate('Manage', { screen: 'CreateAppointment' })}
           />
           <Button
             title="Manage barbers"
             variant="secondary"
-            onPress={() => navigation.navigate('ManageBarbers')}
+            onPress={() => navigation.navigate('Manage', { screen: 'ManageBarbers' })}
           />
           <Button
             title="Manage services"
             variant="secondary"
-            onPress={() => navigation.navigate('ManageServices')}
+            onPress={() => navigation.navigate('Manage', { screen: 'ManageServices' })}
           />
           <Button
             title="Salon settings"
             variant="secondary"
-            onPress={() => navigation.navigate('ManageSettings')}
+            onPress={() => navigation.navigate('Manage', { screen: 'ManageSettings' })}
           />
           <Button
             title="Blocked users"
             variant="secondary"
-            onPress={() => navigation.navigate('ManageBlocked')}
+            onPress={() => navigation.navigate('Manage', { screen: 'ManageBlocked' })}
           />
         </Card>
       </ScrollView>
