@@ -199,10 +199,13 @@ export const markStatus = onCall<MarkStatusInput, Promise<{ ok: true }>>(async (
 const ALLOWED_ROLES: Role[] = ['admin', 'barber', 'client'];
 
 export const setUserRole = onCall<SetUserRoleInput, Promise<{ ok: true }>>(async (request) => {
-  await requireRole(request, ['admin']);
+  const ctx = await requireRole(request, ['admin']);
   const { uid, role } = request.data;
   if (!uid || !ALLOWED_ROLES.includes(role)) {
     throw new HttpsError('invalid-argument', 'uid and a valid role are required.');
+  }
+  if (uid === ctx.uid && role !== 'admin') {
+    throw new HttpsError('failed-precondition', 'Admins cannot demote their own account.');
   }
   const ref = collections.users().doc(uid);
   const snap = await ref.get();
@@ -210,7 +213,7 @@ export const setUserRole = onCall<SetUserRoleInput, Promise<{ ok: true }>>(async
     throw new HttpsError('not-found', 'User not found.');
   }
   await ref.update({ role });
-  logger.info('User role updated', { uid, role });
+  logger.info('User role updated', { uid, role, by: ctx.uid });
   return { ok: true };
 });
 

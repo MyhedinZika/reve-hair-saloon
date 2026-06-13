@@ -2,13 +2,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { doc, getDoc } from 'firebase/firestore';
 import {
   endOfDayUtcMs,
   startOfDayUtcMs,
   todayDateString,
   type AppointmentDoc,
+  type BarberDoc,
   type ServiceDoc,
+  type UserDoc,
 } from '@salon/shared';
+import { firestore } from '../../config/firebase';
 import {
   BodyText,
   Card,
@@ -26,6 +30,8 @@ export function AdminDashboardScreen(): React.JSX.Element {
   const { t } = useI18n();
   const [appointments, setAppointments] = useState<AppointmentDoc[]>([]);
   const [services, setServices] = useState<ServiceDoc[]>([]);
+  const [barbers, setBarbers] = useState<BarberDoc[]>([]);
+  const [clientsByUid, setClientsByUid] = useState<Record<string, UserDoc>>({});
 
   useEffect(() => {
     const unsub = stores.watchAllAppointments(setAppointments);
@@ -34,7 +40,39 @@ export function AdminDashboardScreen(): React.JSX.Element {
 
   useEffect(() => {
     stores.listServices().then(setServices).catch(() => setServices([]));
+    stores.listBarbers().then(setBarbers).catch(() => setBarbers([]));
   }, []);
+
+  useEffect(() => {
+    const missing = Array.from(
+      new Set(appointments.map((a) => a.clientId).filter((id): id is string => !!id)),
+    ).filter((uid) => !(uid in clientsByUid));
+    if (missing.length === 0) return;
+    let cancelled = false;
+    void (async () => {
+      const entries = await Promise.all(
+        missing.map(async (uid) => {
+          try {
+            const snap = await getDoc(doc(firestore, 'users', uid));
+            return [uid, snap.data() as UserDoc | undefined] as const;
+          } catch {
+            return [uid, undefined] as const;
+          }
+        }),
+      );
+      if (cancelled) return;
+      setClientsByUid((prev) => {
+        const next = { ...prev };
+        for (const [uid, user] of entries) {
+          if (user) next[uid] = user;
+        }
+        return next;
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [appointments, clientsByUid]);
 
   const stats = useMemo(() => {
     const today = todayDateString();
@@ -49,18 +87,19 @@ export function AdminDashboardScreen(): React.JSX.Element {
     }, 0);
     const weekStart = Date.now() - 7 * 24 * 60 * 60 * 1000;
     const noShows = appointments.filter((a) => a.status === 'noShow' && a.startAt >= weekStart);
+    const activeBarberCount = barbers.filter((b) => b.active).length;
     return {
       todayCount: todayAppts.length,
       upcomingCount: upcoming.length,
       revenueCents,
       noShowCount: noShows.length,
-      utilisation: Math.min(99, Math.round((todayAppts.length / 12) * 100)),
+      activeBarberCount,
       nextToday: todayAppts
         .filter((appointment) => appointment.status === 'confirmed' && appointment.startAt > Date.now())
         .sort((a, b) => a.startAt - b.startAt)
         .slice(0, 3),
     };
-  }, [appointments, services]);
+  }, [appointments, services, barbers]);
 
   return (
     <Screen padded={false}>
@@ -75,9 +114,13 @@ export function AdminDashboardScreen(): React.JSX.Element {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.statsRow}>
           <StatCard label={t('todayLabel')} value={stats.todayCount} suffix={t('appointmentsLower')} />
-          <StatCard label={t('revenue')} value={`EUR ${Math.round(stats.revenueCents / 100)}`} suffix={t('todayLower')} />
+          <StatCard label={t('revenue')} value={`€${Math.round(stats.revenueCents / 100)}`} suffix={t('todayLower')} />
           <StatCard label={t('noShows')} value={stats.noShowCount} suffix={t('thisWeek')} />
-          <StatCard label={t('utilisation')} value={`${stats.utilisation}%`} suffix={`${stats.upcomingCount} ${t('upcomingLower')}`} />
+          <StatCard
+            label={t('activeBarbers')}
+            value={stats.activeBarberCount}
+            suffix={`${stats.upcomingCount} ${t('upcomingLower')}`}
+          />
         </View>
 
         <Card style={{ gap: spacing.sm }}>
@@ -94,7 +137,11 @@ export function AdminDashboardScreen(): React.JSX.Element {
                   {new Date(appointment.startAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </BodyText>
                 <MutedText style={{ flex: 1 }}>
-                  {appointment.guestClient?.name ?? t('client')} - {t('serviceCount', { count: appointment.serviceIds.length })}
+                  {appointment.guestClient?.name
+                    ?? (appointment.clientId && clientsByUid[appointment.clientId]?.displayName)
+                    ?? t('client')}
+                  {' - '}
+                  {t('serviceCount', { count: appointment.serviceIds.length })}
                 </MutedText>
                 <Text style={styles.statusText}>{t('appointmentConfirmed')}</Text>
               </View>

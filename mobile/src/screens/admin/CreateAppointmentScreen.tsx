@@ -210,7 +210,7 @@ export function CreateAppointmentScreen({ navigation }: Props): React.JSX.Elemen
                       color: colors.ink,
                     }}
                   >
-                    ${formatPrice(s.priceCents)}
+                    €{formatPrice(s.priceCents)}
                   </BodyText>
                 </Pressable>
               );

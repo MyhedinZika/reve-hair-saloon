@@ -28,7 +28,8 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.auth.uid == uid
         && request.resource.data.role == 'client';
       allow update: if isSignedIn() && request.auth.uid == uid
-        && request.resource.data.role == resource.data.role;
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['fcmToken', 'displayName', 'phone']);
       allow delete: if isAdmin();
     }
 

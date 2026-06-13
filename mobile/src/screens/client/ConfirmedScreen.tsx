@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Linking, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AppointmentDoc, BarberDoc, ServiceDoc } from '@salon/shared';
 import {
@@ -50,6 +50,29 @@ export function ConfirmedScreen({ navigation, route }: Props): React.JSX.Element
     navigation.popToTop();
   };
 
+  const viewAppointment = (): void => {
+    const parent = navigation.getParent() as
+      | { goBack: () => void; navigate: (name: string, params: { appointmentId: string }) => void }
+      | undefined;
+    if (parent) {
+      parent.goBack();
+      parent.navigate('AppointmentDetails', { appointmentId });
+    }
+  };
+
+  const addToCalendar = (): void => {
+    if (!appointment) return;
+    const title = `${capitalize(serviceLabel)} - Rêve Hair Salon`;
+    const details = `With ${barber?.displayName ?? 'your barber'} at Rêve Hair Salon.`;
+    const dates = `${toGcalDate(appointment.startAt)}/${toGcalDate(appointment.endAt)}`;
+    const url =
+      'https://calendar.google.com/calendar/render?action=TEMPLATE' +
+      `&text=${encodeURIComponent(title)}` +
+      `&details=${encodeURIComponent(details)}` +
+      `&dates=${dates}`;
+    void Linking.openURL(url);
+  };
+
   const serviceLabel =
     services.length > 0
       ? services.map((service) => service.name.toLowerCase()).join(' & ')
@@ -78,19 +101,20 @@ export function ConfirmedScreen({ navigation, route }: Props): React.JSX.Element
           <View style={styles.totalRow}>
             <MutedText>Rêve Hair Salon</MutedText>
             <BodyText style={{ fontWeight: font.weight.semibold }}>
-              EUR {formatPrice(totalCents)}
+              €{formatPrice(totalCents)}
             </BodyText>
           </View>
         </Card>
       </View>
 
       <BottomBar>
-        <Button title={t('viewAppointment')} onPress={goHome} />
+        <Button title={t('viewAppointment')} onPress={viewAppointment} />
         <Button
           title={t('addToCalendar')}
           variant="secondary"
           style={{ marginTop: spacing.sm }}
-          onPress={goHome}
+          onPress={addToCalendar}
+          disabled={!appointment}
         />
       </BottomBar>
     </Screen>
@@ -99,6 +123,11 @@ export function ConfirmedScreen({ navigation, route }: Props): React.JSX.Element
 
 function capitalize(value: string): string {
   return value.length > 0 ? value[0]!.toUpperCase() + value.slice(1) : value;
+}
+
+function toGcalDate(ms: number): string {
+  // YYYYMMDDTHHMMSSZ (UTC)
+  return new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 }
 
 const styles = StyleSheet.create({

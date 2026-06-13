@@ -37,6 +37,17 @@ export function InboxScreen({ onOpenAppointment }: InboxScreenProps): React.JSX.
     }
   };
 
+  const markAllRead = async (): Promise<void> => {
+    const unread = items.filter((n) => !n.read);
+    await Promise.all(
+      unread.map((n) =>
+        updateDoc(doc(firestore, 'notifications', n.id), { read: true }).catch(() => undefined),
+      ),
+    );
+  };
+
+  const hasUnread = items.some((n) => !n.read);
+
   return (
     <Screen padded={false}>
       <View style={styles.header}>
@@ -45,7 +56,11 @@ export function InboxScreen({ onOpenAppointment }: InboxScreenProps): React.JSX.
             <Heading level={2}>{t('notifications')}</Heading>
             <MutedText>{t('notificationsSubtitle')}</MutedText>
           </View>
-          {items.length > 0 ? <MutedText style={styles.markRead}>{t('markAllRead')}</MutedText> : null}
+          {hasUnread ? (
+            <Pressable onPress={() => void markAllRead()}>
+              <MutedText style={styles.markRead}>{t('markAllRead')}</MutedText>
+            </Pressable>
+          ) : null}
         </View>
       </View>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>

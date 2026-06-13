@@ -6,10 +6,12 @@ import {
   SLOT_MINUTES,
   addDaysToDateString,
   dateStringFromUtcMs,
+  dayOfWeekFromUtcMs,
   endOfDayUtcMs,
   expectedSlotStartsForBooking,
   slotKey,
   startOfDayUtcMs,
+  timeBlockToUtcRange,
   todayDateString,
   type AppointmentDoc,
   type CancelAppointmentInput,
@@ -21,6 +23,7 @@ import {
   type RescheduleAppointmentInput,
   type Role,
   type SlotClaimDoc,
+  type TimeBlock,
 } from '@salon/shared';
 import { collections, db } from './db';
 import { requireCaller, type CallerContext } from './auth';
@@ -150,8 +153,52 @@ async function createAppointmentInternal(
   );
   const appointmentRef = collections.appointments().doc();
 
+  const dateStr = dateStringFromUtcMs(input.startAt);
+  const dayOfWeek = dayOfWeekFromUtcMs(input.startAt);
+  const whRef = collections.workingHours().doc(`${input.barberId}_${dayOfWeek}`);
+  const brRef = collections.breaks().doc(`${input.barberId}_${dateStr}`);
+
   const appointment = await db().runTransaction(async (tx) => {
-    const claimSnaps = await Promise.all(claimRefs.map((r) => tx.get(r)));
+    const [whSnap, brSnap, ...claimSnaps] = await Promise.all([
+      tx.get(whRef),
+      tx.get(brRef),
+      ...claimRefs.map((r) => tx.get(r)),
+    ]);
+
+    const workingBlocks: TimeBlock[] = whSnap.data()?.blocks ?? [];
+    const breakBlocks: TimeBlock[] = brSnap.data()?.blocks ?? [];
+
+    if (workingBlocks.length === 0) {
+      throw new HttpsError(
+        'failed-precondition',
+        'No working hours set for this day. Please choose another time.',
+      );
+    }
+
+    for (const slotStart of slotStarts) {
+      const slotEnd = slotStart + SLOT_MINUTES * 60 * 1000;
+      const insideWorking = workingBlocks.some((b) => {
+        const r = timeBlockToUtcRange(dateStr, b.start, b.end);
+        return r.startMs <= slotStart && r.endMs >= slotEnd;
+      });
+      if (!insideWorking) {
+        throw new HttpsError(
+          'failed-precondition',
+          'Slot is outside working hours. Please choose another time.',
+        );
+      }
+      const overlapsBreak = breakBlocks.some((b) => {
+        const r = timeBlockToUtcRange(dateStr, b.start, b.end);
+        return r.startMs < slotEnd && r.endMs > slotStart;
+      });
+      if (overlapsBreak) {
+        throw new HttpsError(
+          'failed-precondition',
+          'Slot overlaps a break. Please choose another time.',
+        );
+      }
+    }
+
     for (const s of claimSnaps) {
       if (s.exists) {
         throw new HttpsError('aborted', 'Slot was just taken. Please choose another time.');
@@ -288,8 +335,13 @@ async function cancelInternal(
       }
     }
 
-    for (const id of data.slotClaimIds) {
-      tx.delete(collections.slotClaims().doc(id));
+    const claimRefs = data.slotClaimIds.map((id) => collections.slotClaims().doc(id));
+    const claimSnaps = await Promise.all(claimRefs.map((r) => tx.get(r)));
+    for (let i = 0; i < claimRefs.length; i++) {
+      const claim = claimSnaps[i]!.data();
+      if (claim && claim.appointmentId === appointmentId) {
+        tx.delete(claimRefs[i]!);
+      }
     }
 
     tx.update(apptRef, {
@@ -374,6 +426,13 @@ export const rescheduleAppointment = onCall<
     throw new HttpsError('permission-denied', 'Not allowed to reschedule.');
   }
 
+  if (newStartAt === original.startAt) {
+    throw new HttpsError(
+      'invalid-argument',
+      'New time is the same as the current booking. Pick a different slot.',
+    );
+  }
+
   const cancelStatus: 'cancelledByAdmin' | 'cancelledByClient' =
     isAdmin || isBarber ? 'cancelledByAdmin' : 'cancelledByClient';
   await cancelInternal(appointmentId, ctx.uid, cancelStatus, !isAdmin);
@@ -390,8 +449,42 @@ export const rescheduleAppointment = onCall<
     rebookInput.guestClient = original.guestClient;
   }
 
-  const result = await createAppointmentInternal(ctx, rebookInput);
-  return { appointmentId: result.appointmentId };
+  try {
+    const result = await createAppointmentInternal(ctx, rebookInput);
+    return { appointmentId: result.appointmentId };
+  } catch (err) {
+    logger.warn('Reschedule create failed, recovering original slot', {
+      appointmentId,
+      err: err instanceof Error ? err.message : 'unknown',
+    });
+    const recovery: CreateAppointmentInput = {
+      barberId: original.barberId,
+      serviceIds: original.serviceIds,
+      startAt: original.startAt,
+    };
+    if (original.clientId && original.clientId !== ctx.uid) {
+      recovery.onBehalfOfClientId = original.clientId;
+    }
+    if (original.guestClient) {
+      recovery.guestClient = original.guestClient;
+    }
+    try {
+      await createAppointmentInternal(ctx, recovery);
+      throw new HttpsError(
+        'aborted',
+        'Could not move the booking. Your original time has been kept.',
+      );
+    } catch (recoveryErr) {
+      if (recoveryErr instanceof HttpsError && recoveryErr.code === 'aborted') {
+        throw recoveryErr;
+      }
+      logger.error('Failed to recover original appointment after reschedule failure', {
+        appointmentId,
+        err: recoveryErr instanceof Error ? recoveryErr.message : 'unknown',
+      });
+      throw err;
+    }
+  }
 });
 
 export const todayDate = onCall<void, Promise<{ date: string }>>(async (request) => {

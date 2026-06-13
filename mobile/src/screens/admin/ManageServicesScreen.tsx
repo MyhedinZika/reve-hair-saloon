@@ -81,7 +81,7 @@ export function ManageServicesScreen(): React.JSX.Element {
                   {s.name}
                 </BodyText>
                 <MutedText>
-                  ${formatPrice(s.priceCents)} · {formatDuration(s.durationMinutes)} ·{' '}
+                  €{formatPrice(s.priceCents)} · {formatDuration(s.durationMinutes)} ·{' '}
                   {s.active ? 'Active' : 'Inactive'}
                 </MutedText>
               </View>

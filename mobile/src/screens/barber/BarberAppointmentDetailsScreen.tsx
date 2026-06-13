@@ -180,14 +180,14 @@ export function BarberAppointmentDetailsScreen({
               }}
             >
               <BodyText>{s.name}</BodyText>
-              <BodyText>${formatPrice(s.priceCents)}</BodyText>
+              <BodyText>€{formatPrice(s.priceCents)}</BodyText>
             </View>
           ))}
           <Divider />
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             <BodyText style={{ fontWeight: font.weight.semibold }}>Total</BodyText>
             <BodyText style={{ fontWeight: font.weight.semibold }}>
-              ${formatPrice(totalCents)} · {formatDuration(totalMinutes)}
+              €{formatPrice(totalCents)} · {formatDuration(totalMinutes)}
             </BodyText>
           </View>
           <Divider />

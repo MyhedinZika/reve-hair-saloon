@@ -132,14 +132,14 @@ export function AppointmentDetailsScreen({ navigation, route }: Props): React.JS
               }}
             >
               <BodyText>{s.name}</BodyText>
-              <BodyText>${formatPrice(s.priceCents)}</BodyText>
+              <BodyText>€{formatPrice(s.priceCents)}</BodyText>
             </View>
           ))}
           <Divider />
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             <BodyText style={{ fontWeight: font.weight.semibold }}>{t('total')}</BodyText>
             <BodyText style={{ fontWeight: font.weight.semibold }}>
-              ${formatPrice(totalCents)} · {formatDuration(totalMinutes)}
+              €{formatPrice(totalCents)} · {formatDuration(totalMinutes)}
             </BodyText>
           </View>
         </Card>

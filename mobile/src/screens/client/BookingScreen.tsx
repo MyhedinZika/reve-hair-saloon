@@ -112,16 +112,7 @@ export function BookingScreen({ navigation }: Props): React.JSX.Element {
     return out;
   }, []);
 
-  const barberMeta = useMemo(
-    () => [
-      { role: t('masterBarber'), rating: '4.9', next: t('todayAt', { time: '14:00' }) },
-      { role: t('seniorStylist'), rating: '4.8', next: t('todayAt', { time: '15:30' }) },
-      { role: t('barber'), rating: '4.7', next: t('tomorrowAt', { time: '10:00' }) },
-    ],
-    [t],
-  );
-
-  useEffect(() => {
+useEffect(() => {
     if (!barberId || totalMinutes === 0) {
       setSlots(null);
       setStartAt(null);
@@ -311,12 +302,11 @@ export function BookingScreen({ navigation }: Props): React.JSX.Element {
                 <MutedText>{t('noBarbersAvailable')}</MutedText>
               ) : (
                 <View style={{ gap: spacing.md }}>
-                  {barbers.map((barber, index) => (
+                  {barbers.map((barber) => (
                     <BarberCard
                       key={barber.id}
                       barber={barber}
                       selected={barber.id === barberId}
-                      meta={barberMeta[index % barberMeta.length]!}
                       onPress={() => onPickBarber(barber.id)}
                     />
                   ))}
@@ -434,13 +424,13 @@ export function BookingScreen({ navigation }: Props): React.JSX.Element {
                 <SummaryLine
                   key={service.id}
                   label={service.name}
-                  value={`EUR ${formatPrice(service.priceCents)}`}
+                  value={`€${formatPrice(service.priceCents)}`}
                 />
               ))}
               <View style={styles.summaryDivider} />
               <SummaryLine
                 label={t('total')}
-                value={`EUR ${formatPrice(totalCents)} - ${formatDuration(totalMinutes)}`}
+                value={`€${formatPrice(totalCents)} - ${formatDuration(totalMinutes)}`}
                 strong
               />
             </Card>
@@ -454,14 +444,14 @@ export function BookingScreen({ navigation }: Props): React.JSX.Element {
           <BottomSummary
             eyebrow={`${t('serviceCount', { count: selectedServices.size })} - ${formatDuration(totalMinutes || 0)} ${t('totalLabel')}`}
             label={t('subtotal')}
-            value={`EUR ${formatPrice(totalCents)}`}
+            value={`€${formatPrice(totalCents)}`}
           />
         ) : null}
         {step === 3 ? (
           <BottomSummary
             eyebrow={`${t('serviceCount', { count: selectedServices.size })} - ${formatDuration(totalMinutes || 0)}`}
             label={startAt !== null ? formatDateLong(startAt) : t('ready')}
-            value={`EUR ${formatPrice(totalCents)}`}
+            value={`€${formatPrice(totalCents)}`}
           />
         ) : null}
         <Button
@@ -509,13 +499,10 @@ function StepHeader({ step, onBack }: StepHeaderProps): React.JSX.Element {
 interface BarberCardProps {
   barber: BarberDoc;
   selected: boolean;
-  meta: { role: string; rating: string; next: string };
   onPress: () => void;
 }
 
-function BarberCard({ barber, selected, meta, onPress }: BarberCardProps): React.JSX.Element {
-  const { t } = useI18n();
-
+function BarberCard({ barber, selected, onPress }: BarberCardProps): React.JSX.Element {
   return (
     <Pressable
       onPress={onPress}
@@ -524,14 +511,6 @@ function BarberCard({ barber, selected, meta, onPress }: BarberCardProps): React
       <BarberAvatar avatarUrl={barber.avatarUrl} name={barber.displayName} size={56} />
       <View style={{ flex: 1 }}>
         <BodyText style={{ fontWeight: font.weight.semibold }}>{barber.displayName}</BodyText>
-        <MutedText style={{ fontSize: font.size.sm }}>{meta.role}</MutedText>
-        <View style={styles.metaRow}>
-          <Text style={styles.star}>*</Text>
-          <Text style={styles.rating}>{meta.rating}</Text>
-          <MutedText style={{ fontSize: font.size.sm }}>
-            - {t('nextAvailable', { time: meta.next })}
-          </MutedText>
-        </View>
       </View>
       <View style={[styles.radio, selected ? styles.radioSelected : null]}>
         {selected ? <Text style={styles.radioCheck}>✓</Text> : null}
@@ -562,7 +541,7 @@ function ServiceRow({ service, selected, onPress }: ServiceRowProps): React.JSX.
         </MutedText>
       </View>
       <BodyText style={{ fontWeight: font.weight.semibold }}>
-        EUR {formatPrice(service.priceCents)}
+        €{formatPrice(service.priceCents)}
       </BodyText>
     </Pressable>
   );
