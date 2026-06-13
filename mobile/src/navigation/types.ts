@@ -1,6 +1,7 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
 export type AuthStackParamList = {
+  Welcome: undefined;
   SignIn: undefined;
   SignUp: undefined;
 };
@@ -12,7 +13,6 @@ export type BookingStackParamList = {
 
 export type ClientTabParamList = {
   Home: undefined;
-  Booking: NavigatorScreenParams<BookingStackParamList>;
   Appointments: undefined;
   Inbox: undefined;
   Profile: undefined;
@@ -20,6 +20,7 @@ export type ClientTabParamList = {
 
 export type ClientStackParamList = {
   Tabs: NavigatorScreenParams<ClientTabParamList>;
+  BookingFlow: NavigatorScreenParams<BookingStackParamList>;
   AppointmentDetails: { appointmentId: string };
   Chat: { appointmentId: string };
   Reschedule: { appointmentId: string };

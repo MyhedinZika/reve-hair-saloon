@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   DEFAULT_BOOKING_HORIZON_DAYS,
@@ -12,6 +12,8 @@ import {
 import {
   BodyText,
   Button,
+  Heading,
+  IconButton,
   Input,
   MutedText,
   Pill,
@@ -34,7 +36,7 @@ export function CreateAppointmentScreen({ navigation }: Props): React.JSX.Elemen
   const [date, setDate] = useState<string>(todayDateString());
   const [slots, setSlots] = useState<number[] | null>(null);
   const [startAt, setStartAt] = useState<number | null>(null);
-  const [mode, setMode] = useState<Mode>('registered');
+  const [mode, setMode] = useState<Mode>('guest');
   const [clientUid, setClientUid] = useState('');
   const [guestName, setGuestName] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
@@ -118,8 +120,18 @@ export function CreateAppointmentScreen({ navigation }: Props): React.JSX.Elemen
   };
 
   return (
-    <Screen>
-      <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl, gap: spacing.md }}>
+    <Screen padded={false}>
+      <View style={styles.header}>
+        <IconButton label="Back" onPress={() => navigation.goBack()}>
+          <Text style={{ color: colors.ink, fontSize: 20, lineHeight: 24 }}>{'<'}</Text>
+        </IconButton>
+        <View>
+          <Heading level={3}>New appointment</Heading>
+          <MutedText>Book on behalf of a client</MutedText>
+        </View>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <MutedText>Barber</MutedText>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
           {barbers.map((b) => (
@@ -127,6 +139,7 @@ export function CreateAppointmentScreen({ navigation }: Props): React.JSX.Elemen
               key={b.id}
               label={b.displayName}
               selected={b.id === barberId}
+              selectedTone="accent"
               onPress={() => setBarberId(b.id)}
             />
           ))}
@@ -151,15 +164,15 @@ export function CreateAppointmentScreen({ navigation }: Props): React.JSX.Elemen
                     flexDirection: 'row',
                     justifyContent: 'space-between',
                     padding: spacing.md,
-                    borderRadius: radius.md,
-                    backgroundColor: isSelected ? colors.ink : colors.card,
+                    borderRadius: radius.lg,
+                    backgroundColor: colors.card,
                     borderWidth: 1,
-                    borderColor: isSelected ? colors.ink : colors.border,
+                    borderColor: isSelected ? colors.accent : colors.border,
                   }}
                 >
                   <BodyText
                     style={{
-                      color: isSelected ? colors.inkOnAccent : colors.ink,
+                      color: colors.ink,
                       fontWeight: font.weight.medium,
                     }}
                   >
@@ -167,7 +180,7 @@ export function CreateAppointmentScreen({ navigation }: Props): React.JSX.Elemen
                   </BodyText>
                   <BodyText
                     style={{
-                      color: isSelected ? colors.inkOnAccent : colors.ink,
+                      color: colors.ink,
                     }}
                   >
                     ${formatPrice(s.priceCents)}
@@ -180,7 +193,13 @@ export function CreateAppointmentScreen({ navigation }: Props): React.JSX.Elemen
         <MutedText>Date</MutedText>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
           {dates.map((d) => (
-            <Pill key={d} label={d.slice(5)} selected={d === date} onPress={() => setDate(d)} />
+            <Pill
+              key={d}
+              label={d.slice(5)}
+              selected={d === date}
+              selectedTone="accent"
+              onPress={() => setDate(d)}
+            />
           ))}
         </ScrollView>
 
@@ -192,12 +211,13 @@ export function CreateAppointmentScreen({ navigation }: Props): React.JSX.Elemen
         ) : (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
             {slots.map((s) => (
-              <Pill
-                key={s}
-                label={formatTimeOfDay(s)}
-                selected={startAt === s}
-                onPress={() => setStartAt(s)}
-              />
+            <Pill
+              key={s}
+              label={formatTimeOfDay(s)}
+              selected={startAt === s}
+              selectedTone="accent"
+              onPress={() => setStartAt(s)}
+            />
             ))}
           </View>
         )}
@@ -205,11 +225,17 @@ export function CreateAppointmentScreen({ navigation }: Props): React.JSX.Elemen
         <MutedText>Client</MutedText>
         <View style={{ flexDirection: 'row', gap: spacing.sm }}>
           <Pill
+            label="Guest"
+            selected={mode === 'guest'}
+            selectedTone="accent"
+            onPress={() => setMode('guest')}
+          />
+          <Pill
             label="Registered"
             selected={mode === 'registered'}
+            selectedTone="accent"
             onPress={() => setMode('registered')}
           />
-          <Pill label="Guest" selected={mode === 'guest'} onPress={() => setMode('guest')} />
         </View>
 
         {mode === 'registered' ? (
@@ -226,8 +252,29 @@ export function CreateAppointmentScreen({ navigation }: Props): React.JSX.Elemen
           </View>
         )}
 
+        <MutedText>
+          Admin bookings are auto-confirmed and bypass the 2-per-day client limit.
+        </MutedText>
         <Button title="Create appointment" onPress={submit} loading={busy} />
       </ScrollView>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  header: {
+    backgroundColor: colors.card,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+  },
+  content: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xxl,
+    gap: spacing.md,
+  },
+});

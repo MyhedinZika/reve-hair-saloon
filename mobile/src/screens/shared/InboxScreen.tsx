@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { doc, updateDoc } from 'firebase/firestore';
 import type { NotificationDoc } from '@salon/shared';
 import { BodyText, Heading, MutedText, Screen } from '../../theme/components';
@@ -7,6 +7,7 @@ import { colors, font, radius, spacing } from '../../theme/tokens';
 import { firestore } from '../../config/firebase';
 import { stores } from '../../api/firestore';
 import { useAuth } from '../../auth/AuthContext';
+import { useI18n } from '../../i18n/I18nContext';
 
 interface InboxScreenProps {
   onOpenAppointment?: (appointmentId: string) => void;
@@ -14,6 +15,7 @@ interface InboxScreenProps {
 
 export function InboxScreen({ onOpenAppointment }: InboxScreenProps): React.JSX.Element {
   const { profile } = useAuth();
+  const { t } = useI18n();
   const [items, setItems] = useState<NotificationDoc[]>([]);
 
   useEffect(() => {
@@ -36,11 +38,19 @@ export function InboxScreen({ onOpenAppointment }: InboxScreenProps): React.JSX.
   };
 
   return (
-    <Screen>
-      <Heading level={2} style={{ marginBottom: spacing.lg }}>Inbox</Heading>
-      <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl, gap: spacing.sm }}>
+    <Screen padded={false}>
+      <View style={styles.header}>
+        <View style={styles.headerRow}>
+          <View>
+            <Heading level={2}>{t('notifications')}</Heading>
+            <MutedText>{t('notificationsSubtitle')}</MutedText>
+          </View>
+          {items.length > 0 ? <MutedText style={styles.markRead}>{t('markAllRead')}</MutedText> : null}
+        </View>
+      </View>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {items.length === 0 ? (
-          <MutedText>No notifications yet.</MutedText>
+          <MutedText>{t('noNotifications')}</MutedText>
         ) : null}
         {items.map((n) => (
           <Pressable
@@ -83,3 +93,30 @@ export function InboxScreen({ onOpenAppointment }: InboxScreenProps): React.JSX.
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  header: {
+    backgroundColor: colors.card,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  markRead: {
+    color: colors.accent,
+    fontSize: font.size.sm,
+    fontWeight: font.weight.semibold,
+    marginTop: spacing.xs,
+  },
+  content: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xxl,
+    gap: spacing.sm,
+  },
+});

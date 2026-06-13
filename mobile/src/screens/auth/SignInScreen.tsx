@@ -1,15 +1,25 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Button, Heading, Input, MutedText, Screen } from '../../theme/components';
-import { spacing } from '../../theme/tokens';
+import {
+  Button,
+  Heading,
+  IconButton,
+  Input,
+  MutedText,
+  Screen,
+} from '../../theme/components';
+import { LanguageToggle } from '../../components/LanguageToggle';
+import { colors, font, spacing } from '../../theme/tokens';
 import { signInWithEmail } from '../../auth/api';
 import { useGoogleSignIn } from '../../auth/google';
+import { useI18n } from '../../i18n/I18nContext';
 import type { AuthStackParamList } from '../../navigation/types';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'SignIn'>;
 
 export function SignInScreen({ navigation }: Props): React.JSX.Element {
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +32,7 @@ export function SignInScreen({ navigation }: Props): React.JSX.Element {
     try {
       await signInWithEmail(email.trim(), password);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Sign-in failed';
+      const msg = err instanceof Error ? err.message : t('loginError');
       setError(msg);
     } finally {
       setLoading(false);
@@ -35,7 +45,7 @@ export function SignInScreen({ navigation }: Props): React.JSX.Element {
     try {
       await google.prompt();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Google sign-in failed';
+      const msg = err instanceof Error ? err.message : t('loginError');
       setError(msg);
     } finally {
       setLoading(false);
@@ -43,48 +53,88 @@ export function SignInScreen({ navigation }: Props): React.JSX.Element {
   };
 
   return (
-    <Screen>
-      <View style={{ flex: 1, justifyContent: 'center' }}>
-        <Heading level={1} style={{ marginBottom: spacing.xs }}>
-          Welcome back
-        </Heading>
-        <MutedText style={{ marginBottom: spacing.xl }}>Sign in to book your next visit.</MutedText>
+    <Screen style={{ backgroundColor: colors.card }}>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl }}
+      >
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <IconButton label={t('back')} onPress={() => navigation.goBack()}>
+            <Text style={{ color: colors.ink, fontSize: 20, lineHeight: 24 }}>{'<'}</Text>
+          </IconButton>
+          <LanguageToggle />
+        </View>
 
-        <Input
-          label="Email"
-          autoCapitalize="none"
-          autoComplete="email"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-        />
-        <Input
-          label="Password"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          errorText={error}
-        />
+        <View style={{ marginTop: 34 }}>
+          <Heading level={1}>{t('welcomeBack')}</Heading>
+          <MutedText style={{ marginTop: spacing.xs, marginBottom: spacing.xxl }}>
+            {t('signInSubtitle')}
+          </MutedText>
 
-        <Button title="Sign in" onPress={handleSignIn} loading={loading} />
+          <Input
+            label={t('emailAddress')}
+            autoCapitalize="none"
+            autoComplete="email"
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+            placeholder="amelia.k@email.com"
+          />
+          <Input
+            label={t('password')}
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+            errorText={error}
+            placeholder={t('password')}
+          />
 
-        <View style={{ height: spacing.md }} />
+          <Text
+            style={{
+              color: colors.accent,
+              fontSize: font.size.md,
+              fontWeight: font.weight.medium,
+              textAlign: 'right',
+              marginTop: -spacing.xs,
+              marginBottom: spacing.lg,
+            }}
+          >
+            {t('forgotPassword')}
+          </Text>
+
+          <Button title={t('signIn')} onPress={handleSignIn} loading={loading} />
+
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing.lg,
+              marginVertical: spacing.xl,
+            }}
+          >
+            <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+            <Text style={{ color: colors.mutedSoft, fontSize: font.size.sm }}>{t('or')}</Text>
+            <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+          </View>
+
+          <Button
+            title={t('continueWithGoogle')}
+            variant="secondary"
+            onPress={handleGoogle}
+            disabled={!google.ready || loading}
+          />
+        </View>
+
+        <View style={{ flex: 1 }} />
 
         <Button
-          title="Continue with Google"
-          variant="secondary"
-          onPress={handleGoogle}
-          disabled={!google.ready || loading}
-        />
-
-        <View style={{ height: spacing.lg }} />
-
-        <Button
-          title="Create an account"
+          title={t('createAccount')}
           variant="ghost"
           onPress={() => navigation.navigate('SignUp')}
+          style={{ marginTop: spacing.xl }}
+          textStyle={{ color: colors.accent }}
         />
-      </View>
+      </ScrollView>
     </Screen>
   );
 }

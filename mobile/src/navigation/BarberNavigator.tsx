@@ -8,8 +8,10 @@ import { ManageHoursScreen } from '../screens/barber/ManageHoursScreen';
 import { ManageBreaksScreen } from '../screens/barber/ManageBreaksScreen';
 import { ProfileScreen } from '../screens/shared/ProfileScreen';
 import { useAuth } from '../auth/AuthContext';
+import { useI18n } from '../i18n/I18nContext';
 import { useUnreadCount } from '../notifications/useUnreadCount';
-import { colors } from '../theme/tokens';
+import { colors, font } from '../theme/tokens';
+import { TabIcon } from './TabIcon';
 import type { BarberStackParamList, BarberTabParamList } from './types';
 
 const Tab = createBottomTabNavigator<BarberTabParamList>();
@@ -25,24 +27,49 @@ function BreaksScreen(): React.JSX.Element {
 
 function Tabs(): React.JSX.Element {
   const { profile } = useAuth();
+  const { t } = useI18n();
   const unread = useUnreadCount(profile?.uid ?? null);
 
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.border },
-        tabBarActiveTintColor: colors.ink,
+        tabBarStyle: {
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
+          minHeight: 66,
+          paddingTop: 7,
+        },
+        tabBarLabelStyle: { fontSize: font.size.xs, fontWeight: font.weight.semibold },
+        tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.muted,
       }}
     >
-      <Tab.Screen name="Schedule" component={BarberScheduleScreen} />
+      <Tab.Screen
+        name="Schedule"
+        component={BarberScheduleScreen}
+        options={{
+          title: t('schedule'),
+          tabBarIcon: ({ color, focused }) => <TabIcon name="schedule" color={color} focused={focused} />,
+        }}
+      />
       <Tab.Screen
         name="Inbox"
         component={BarberInboxScreen}
-        options={unread > 0 ? { tabBarBadge: unread } : {}}
+        options={{
+          title: t('inbox'),
+          ...(unread > 0 ? { tabBarBadge: unread } : {}),
+          tabBarIcon: ({ color, focused }) => <TabIcon name="inbox" color={color} focused={focused} />,
+        }}
       />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          title: t('profile'),
+          tabBarIcon: ({ color, focused }) => <TabIcon name="profile" color={color} focused={focused} />,
+        }}
+      />
     </Tab.Navigator>
   );
 }

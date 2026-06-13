@@ -16,12 +16,13 @@ export async function signUpWithEmail(
   email: string,
   password: string,
   displayName: string,
+  phone: string | null = null,
 ): Promise<void> {
   const cred = await createUserWithEmailAndPassword(auth, email, password);
   await ensureUserProfile(cred.user.uid, {
     displayName,
     email: cred.user.email,
-    phone: null,
+    phone,
   });
 }
 

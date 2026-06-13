@@ -1,17 +1,19 @@
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AppointmentDoc, ServiceDoc } from '@salon/shared';
 import {
   BodyText,
+  BottomBar,
   Button,
   Card,
   Divider,
   Heading,
+  IconButton,
   MutedText,
   Screen,
 } from '../../theme/components';
-import { font, spacing } from '../../theme/tokens';
+import { colors, font, spacing } from '../../theme/tokens';
 import { api } from '../../api/functions';
 import { stores } from '../../api/firestore';
 import {
@@ -90,9 +92,18 @@ export function BarberAppointmentDetailsScreen({
   const totalMinutes = services.reduce((acc, s) => acc + s.durationMinutes, 0);
 
   return (
-    <Screen>
-      <Heading level={2} style={{ marginBottom: spacing.lg }}>Appointment</Heading>
-      <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }}>
+    <Screen padded={false}>
+      <View style={styles.header}>
+        <IconButton label="Back" onPress={() => navigation.goBack()}>
+          <Text style={{ color: colors.ink, fontSize: 20, lineHeight: 24 }}>{'<'}</Text>
+        </IconButton>
+        <View>
+          <Heading level={3}>Appointment</Heading>
+          <MutedText>Next up - {formatTimeOfDay(appointment.startAt)}</MutedText>
+        </View>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Card>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             <MutedText>Client</MutedText>
@@ -155,23 +166,47 @@ export function BarberAppointmentDetailsScreen({
           </View>
         ) : null}
 
-        {appointment.status === 'confirmed' ? (
-          <View style={{ marginTop: spacing.lg, gap: spacing.md }}>
-            <Button
-              title="Mark as completed"
-              loading={busy}
-              onPress={() => void setStatus('completed')}
-            />
-            <Button
-              title="Mark as no-show"
-              variant="secondary"
-              loading={busy}
-              onPress={() => void setStatus('noShow')}
-            />
-            <Button title="Cancel appointment" variant="danger" loading={busy} onPress={cancel} />
-          </View>
-        ) : null}
       </ScrollView>
+      {appointment.status === 'confirmed' ? (
+        <BottomBar>
+          <Button
+            title="Mark completed"
+            loading={busy}
+            onPress={() => void setStatus('completed')}
+          />
+          <Button
+            title="Mark as no-show"
+            variant="secondary"
+            style={{ marginTop: spacing.sm }}
+            loading={busy}
+            onPress={() => void setStatus('noShow')}
+          />
+          <Button
+            title="Cancel appointment"
+            variant="danger"
+            style={{ marginTop: spacing.sm }}
+            loading={busy}
+            onPress={cancel}
+          />
+        </BottomBar>
+      ) : null}
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  header: {
+    backgroundColor: colors.card,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+  },
+  content: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xxl,
+  },
+});

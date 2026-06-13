@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   DEFAULT_BOOKING_HORIZON_DAYS,
@@ -9,17 +9,19 @@ import {
   type AppointmentDoc,
   type ServiceDoc,
 } from '@salon/shared';
-import { BodyText, Button, Heading, MutedText, Screen } from '../../theme/components';
+import { BodyText, Button, Card, Heading, IconButton, MutedText, Screen } from '../../theme/components';
 import { colors, font, radius, spacing } from '../../theme/tokens';
 import { api } from '../../api/functions';
 import { stores } from '../../api/firestore';
-import { formatDateShort, formatTimeOfDay } from '../../util/format';
+import { useI18n } from '../../i18n/I18nContext';
+import { formatDateLong, formatDateShort, formatTimeOfDay } from '../../util/format';
 import type { ClientStackParamList } from '../../navigation/types';
 
 type Props = NativeStackScreenProps<ClientStackParamList, 'Reschedule'>;
 
 export function RescheduleScreen({ navigation, route }: Props): React.JSX.Element {
   const { appointmentId } = route.params;
+  const { t } = useI18n();
   const [appointment, setAppointment] = useState<AppointmentDoc | null>(null);
   const [services, setServices] = useState<ServiceDoc[]>([]);
   const [horizonDays, setHorizonDays] = useState(DEFAULT_BOOKING_HORIZON_DAYS);
@@ -75,10 +77,10 @@ export function RescheduleScreen({ navigation, route }: Props): React.JSX.Elemen
   }, [horizonDays]);
 
   const confirm = (newStartAt: number): void => {
-    Alert.alert('Reschedule?', 'This will move your appointment to the new time.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('rescheduleConfirmTitle'), t('rescheduleConfirmBody'), [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Reschedule',
+        text: t('reschedule'),
         onPress: async () => {
           setBusy(true);
           try {
@@ -86,8 +88,8 @@ export function RescheduleScreen({ navigation, route }: Props): React.JSX.Elemen
             navigation.goBack();
           } catch (err) {
             Alert.alert(
-              'Could not reschedule',
-              err instanceof Error ? err.message : 'Unknown error',
+              t('couldNotReschedule'),
+              err instanceof Error ? err.message : t('unknownError'),
             );
           } finally {
             setBusy(false);
@@ -100,58 +102,74 @@ export function RescheduleScreen({ navigation, route }: Props): React.JSX.Elemen
   if (!appointment) {
     return (
       <Screen>
-        <BodyText>Loading…</BodyText>
+        <BodyText>{t('loading')}</BodyText>
       </Screen>
     );
   }
 
   return (
-    <Screen>
-      <Heading level={2} style={{ marginBottom: spacing.lg }}>Reschedule</Heading>
+    <Screen padded={false}>
+      <View style={styles.header}>
+        <IconButton label={t('back')} onPress={() => navigation.goBack()}>
+          <Text style={{ color: colors.ink, fontSize: 20, lineHeight: 24 }}>{'<'}</Text>
+        </IconButton>
+        <View>
+          <Heading level={3}>{t('reschedule')}</Heading>
+          <MutedText>{t('rescheduleSubtitle')}</MutedText>
+        </View>
+      </View>
 
-      <MutedText>Pick a new date</MutedText>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: spacing.sm, paddingVertical: spacing.md }}
-      >
-        {dates.map((d) => {
-          const { year, month, day } = parseDateString(d);
-          const selected = d === date;
-          return (
-            <Pressable
-              key={d}
-              onPress={() => setDate(d)}
-              style={{
-                paddingHorizontal: spacing.md,
-                paddingVertical: spacing.sm,
-                borderRadius: radius.pill,
-                backgroundColor: selected ? colors.ink : colors.card,
-                borderWidth: 1,
-                borderColor: selected ? colors.ink : colors.border,
-              }}
-            >
-              <BodyText
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Card>
+          <MutedText>{t('currentTime')}</MutedText>
+          <BodyText style={{ marginTop: spacing.xs, fontWeight: font.weight.semibold }}>
+            {formatDateLong(appointment.startAt)} - {formatTimeOfDay(appointment.startAt)}
+          </BodyText>
+        </Card>
+
+        <MutedText style={styles.sectionKicker}>{t('newDate')}</MutedText>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: spacing.sm, paddingVertical: spacing.md }}
+        >
+          {dates.map((d) => {
+            const { year, month, day } = parseDateString(d);
+            const selected = d === date;
+            return (
+              <Pressable
+                key={d}
+                onPress={() => setDate(d)}
                 style={{
-                  color: selected ? colors.inkOnAccent : colors.ink,
-                  fontWeight: font.weight.medium,
+                  paddingHorizontal: spacing.md,
+                  paddingVertical: spacing.sm,
+                  borderRadius: radius.lg,
+                  backgroundColor: selected ? colors.accent : colors.card,
+                  borderWidth: 1,
+                  borderColor: selected ? colors.accent : colors.border,
                 }}
               >
-                {formatDateShort(year, month, day)}
-              </BodyText>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+                <BodyText
+                  style={{
+                    color: selected ? colors.inkOnAccent : colors.ink,
+                    fontWeight: font.weight.medium,
+                  }}
+                >
+                  {formatDateShort(year, month, day)}
+                </BodyText>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
 
-      <MutedText style={{ marginTop: spacing.lg }}>Pick a new time</MutedText>
-      {slots === null ? (
-        <ActivityIndicator color={colors.ink} style={{ marginTop: spacing.md }} />
-      ) : slots.length === 0 ? (
-        <MutedText style={{ marginTop: spacing.md }}>No availability on this date.</MutedText>
-      ) : (
-        <ScrollView
-          contentContainerStyle={{
+        <MutedText style={styles.sectionKicker}>{t('newTime')}</MutedText>
+        {slots === null ? (
+          <ActivityIndicator color={colors.ink} style={{ marginTop: spacing.md }} />
+        ) : slots.length === 0 ? (
+          <MutedText style={{ marginTop: spacing.md }}>{t('noAvailability')}</MutedText>
+        ) : (
+          <View
+            style={{
             flexDirection: 'row',
             flexWrap: 'wrap',
             gap: spacing.sm,
@@ -166,7 +184,7 @@ export function RescheduleScreen({ navigation, route }: Props): React.JSX.Elemen
               style={{
                 paddingHorizontal: spacing.lg,
                 paddingVertical: spacing.md,
-                borderRadius: radius.pill,
+                borderRadius: radius.lg,
                 backgroundColor: colors.card,
                 borderWidth: 1,
                 borderColor: colors.border,
@@ -177,13 +195,41 @@ export function RescheduleScreen({ navigation, route }: Props): React.JSX.Elemen
               </BodyText>
             </Pressable>
           ))}
-        </ScrollView>
-      )}
+          </View>
+        )}
+        <MutedText style={{ marginTop: spacing.md }}>
+          {t('rescheduleRule')}
+        </MutedText>
+      </ScrollView>
       {busy ? (
         <View style={{ position: 'absolute', bottom: spacing.lg, left: 0, right: 0 }}>
-          <Button title="Working…" loading onPress={() => undefined} />
+          <Button title={t('working')} loading onPress={() => undefined} />
         </View>
       ) : null}
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  header: {
+    backgroundColor: colors.card,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+  },
+  content: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xxl,
+    gap: spacing.md,
+  },
+  sectionKicker: {
+    color: colors.accent,
+    fontSize: font.size.sm,
+    fontWeight: font.weight.semibold,
+    letterSpacing: 1.6,
+  },
+});

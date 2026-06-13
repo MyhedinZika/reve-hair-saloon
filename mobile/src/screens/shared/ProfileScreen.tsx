@@ -1,4 +1,4 @@
-import { Alert, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 import {
   BodyText,
   Button,
@@ -8,36 +8,44 @@ import {
   MutedText,
   Screen,
 } from '../../theme/components';
+import { LanguageToggle } from '../../components/LanguageToggle';
 import { font, spacing } from '../../theme/tokens';
 import { api } from '../../api/functions';
 import { useAuth } from '../../auth/AuthContext';
+import { useI18n } from '../../i18n/I18nContext';
 
 export function ProfileScreen(): React.JSX.Element {
   const { profile, signOut } = useAuth();
+  const { t } = useI18n();
 
   const handleExport = async (): Promise<void> => {
     try {
       const result = await api.exportClientHistory();
       Alert.alert(
-        'Export ready',
-        `Your history contains ${result.appointments.length} appointment(s). Saved locally — share/save it now if you need it.`,
+        t('exportReady'),
+        t('exportReadyBody', { count: result.appointments.length }),
       );
     } catch (err) {
-      Alert.alert('Export failed', err instanceof Error ? err.message : 'Unknown error');
+      Alert.alert(t('exportFailed'), err instanceof Error ? err.message : t('unknownError'));
     }
   };
 
   if (!profile) {
     return (
       <Screen>
-        <BodyText>Loading…</BodyText>
+        <BodyText>{t('loading')}</BodyText>
       </Screen>
     );
   }
 
   return (
-    <Screen>
-      <Heading level={2} style={{ marginBottom: spacing.lg }}>Profile</Heading>
+    <Screen padded={false}>
+      <View style={styles.header}>
+        <Heading level={2}>{t('profile')}</Heading>
+        <MutedText>{t('profileSubtitle')}</MutedText>
+      </View>
+
+      <View style={styles.content}>
       <Card>
         <BodyText style={{ fontWeight: font.weight.semibold, fontSize: font.size.lg }}>
           {profile.displayName}
@@ -45,18 +53,45 @@ export function ProfileScreen(): React.JSX.Element {
         {profile.email ? <MutedText>{profile.email}</MutedText> : null}
         {profile.phone ? <MutedText>{profile.phone}</MutedText> : null}
         <Divider />
-        <MutedText>Role: {profile.role}</MutedText>
+        <MutedText>{t('role', { role: profile.role })}</MutedText>
+      </Card>
+
+      <View style={{ height: spacing.xl }} />
+
+      <Card style={styles.languageCard}>
+        <BodyText style={{ fontWeight: font.weight.semibold }}>{t('language')}</BodyText>
+        <LanguageToggle />
       </Card>
 
       <View style={{ height: spacing.xl }} />
 
       {profile.role === 'client' ? (
-        <Button title="Export my data" variant="secondary" onPress={handleExport} />
+        <Button title={t('exportMyData')} variant="secondary" onPress={handleExport} />
       ) : null}
 
       <View style={{ height: spacing.md }} />
 
-      <Button title="Sign out" variant="ghost" onPress={() => void signOut()} />
+      <Button title={t('signOut')} variant="ghost" onPress={() => void signOut()} />
+      </View>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  header: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
+  },
+  content: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+  },
+  languageCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+});

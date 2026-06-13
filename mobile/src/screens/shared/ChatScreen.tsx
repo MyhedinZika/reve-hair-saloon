@@ -4,16 +4,20 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  StyleSheet,
+  Text,
   TextInput,
   View,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import type { AppointmentDoc, MessageDoc } from '@salon/shared';
-import { BodyText, Heading, MutedText, Screen } from '../../theme/components';
+import type { AppointmentDoc, BarberDoc, MessageDoc } from '@salon/shared';
+import { BodyText, Heading, IconButton, MutedText, Screen } from '../../theme/components';
 import { colors, font, radius, spacing } from '../../theme/tokens';
 import { firestore } from '../../config/firebase';
 import { stores } from '../../api/firestore';
 import { useAuth } from '../../auth/AuthContext';
+import { useI18n } from '../../i18n/I18nContext';
 import { formatTimeOfDay } from '../../util/format';
 
 interface ChatScreenProps {
@@ -21,9 +25,12 @@ interface ChatScreenProps {
 }
 
 export function ChatScreen({ appointmentId }: ChatScreenProps): React.JSX.Element {
+  const navigation = useNavigation();
   const { profile } = useAuth();
+  const { t } = useI18n();
   const [messages, setMessages] = useState<MessageDoc[]>([]);
   const [appointment, setAppointment] = useState<AppointmentDoc | null>(null);
+  const [barbers, setBarbers] = useState<BarberDoc[]>([]);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,12 +47,25 @@ export function ChatScreen({ appointmentId }: ChatScreenProps): React.JSX.Elemen
   }, [appointmentId]);
 
   useEffect(() => {
+    stores.listBarbers().then(setBarbers).catch(() => setBarbers([]));
+  }, []);
+
+  useEffect(() => {
     if (messages.length > 0) {
       listRef.current?.scrollToEnd({ animated: true });
     }
   }, [messages]);
 
   const isReadOnly = !appointment || appointment.status !== 'confirmed';
+  const barber = appointment ? barbers.find((b) => b.id === appointment.barberId) : null;
+  const peerName =
+    profile?.role === 'client'
+      ? barber?.displayName ?? t('yourBarber')
+      : appointment?.guestClient?.name ?? t('client');
+  const placeholder =
+    profile?.role === 'client'
+      ? t('messagePeer', { name: firstName(peerName) })
+      : t('messageClient');
 
   const send = async (): Promise<void> => {
     if (!profile) return;
@@ -67,7 +87,7 @@ export function ChatScreen({ appointmentId }: ChatScreenProps): React.JSX.Elemen
       setDraft('');
       void serverTimestamp;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not send message');
+      setError(err instanceof Error ? err.message : t('couldNotSendMessage'));
     } finally {
       setSending(false);
     }
@@ -75,13 +95,20 @@ export function ChatScreen({ appointmentId }: ChatScreenProps): React.JSX.Elemen
 
   return (
     <Screen padded={false}>
-      <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg }}>
-        <Heading level={3}>Chat</Heading>
-        {appointment ? (
-          <MutedText>
-            {formatTimeOfDay(appointment.startAt)} · {appointment.serviceIds.length} service(s)
-          </MutedText>
-        ) : null}
+      <View
+        style={styles.header}
+      >
+        <IconButton label={t('back')} onPress={() => navigation.goBack()}>
+          <Text style={{ color: colors.ink, fontSize: 20, lineHeight: 24 }}>{'<'}</Text>
+        </IconButton>
+        <View style={{ flex: 1 }}>
+          <Heading level={3}>{peerName}</Heading>
+          {appointment ? (
+            <MutedText>
+              {t('serviceCount', { count: appointment.serviceIds.length })} · {formatTimeOfDay(appointment.startAt)}
+            </MutedText>
+          ) : null}
+        </View>
       </View>
 
       <KeyboardAvoidingView
@@ -135,7 +162,7 @@ export function ChatScreen({ appointmentId }: ChatScreenProps): React.JSX.Elemen
           }}
           ListEmptyComponent={
             <View style={{ paddingTop: spacing.xxl, alignItems: 'center' }}>
-              <MutedText>No messages yet.</MutedText>
+              <MutedText>{t('noMessages')}</MutedText>
             </View>
           }
         />
@@ -143,21 +170,22 @@ export function ChatScreen({ appointmentId }: ChatScreenProps): React.JSX.Elemen
         {isReadOnly ? (
           <View
             style={{
-              padding: spacing.lg,
+              padding: spacing.xl,
               borderTopWidth: 1,
               borderTopColor: colors.border,
               backgroundColor: colors.bgAlt,
             }}
           >
             <MutedText style={{ textAlign: 'center' }}>
-              This conversation is closed.
+              {t('conversationClosed')}
             </MutedText>
           </View>
         ) : (
           <View
             style={{
               flexDirection: 'row',
-              padding: spacing.md,
+              paddingHorizontal: spacing.xl,
+              paddingVertical: spacing.md,
               borderTopWidth: 1,
               borderTopColor: colors.border,
               backgroundColor: colors.card,
@@ -168,13 +196,13 @@ export function ChatScreen({ appointmentId }: ChatScreenProps): React.JSX.Elemen
             <TextInput
               value={draft}
               onChangeText={setDraft}
-              placeholder="Type a message…"
+              placeholder={placeholder}
               placeholderTextColor={colors.muted}
               multiline
               maxLength={2000}
               style={{
                 flex: 1,
-                backgroundColor: colors.bg,
+                backgroundColor: colors.bgAlt,
                 borderRadius: radius.md,
                 paddingHorizontal: spacing.md,
                 paddingVertical: spacing.sm,
@@ -195,7 +223,7 @@ export function ChatScreen({ appointmentId }: ChatScreenProps): React.JSX.Elemen
               }}
             >
               <BodyText style={{ color: colors.inkOnAccent, fontWeight: font.weight.semibold }}>
-                Send
+                {t('send')}
               </BodyText>
             </Pressable>
           </View>
@@ -216,3 +244,21 @@ export function ChatScreen({ appointmentId }: ChatScreenProps): React.JSX.Elemen
     </Screen>
   );
 }
+
+function firstName(name: string): string {
+  return name.split(' ')[0] ?? name;
+}
+
+const styles = StyleSheet.create({
+  header: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
+    backgroundColor: colors.card,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+  },
+});
