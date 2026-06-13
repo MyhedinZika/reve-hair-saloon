@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { AppointmentDoc, ServiceDoc } from '@salon/shared';
+import { doc, getDoc } from 'firebase/firestore';
+import type { AppointmentDoc, ServiceDoc, UserDoc } from '@salon/shared';
+import { firestore } from '../../config/firebase';
 import {
   BodyText,
   BottomBar,
@@ -33,6 +35,7 @@ export function BarberAppointmentDetailsScreen({
   const { appointmentId } = route.params;
   const [appointment, setAppointment] = useState<AppointmentDoc | null>(null);
   const [services, setServices] = useState<ServiceDoc[]>([]);
+  const [client, setClient] = useState<UserDoc | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -47,6 +50,25 @@ export function BarberAppointmentDetailsScreen({
       }
     });
   }, [appointment]);
+
+  useEffect(() => {
+    if (!appointment?.clientId) {
+      setClient(null);
+      return;
+    }
+    let cancelled = false;
+    getDoc(doc(firestore, 'users', appointment.clientId))
+      .then((snap) => {
+        if (cancelled) return;
+        setClient((snap.data() as UserDoc | undefined) ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setClient(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [appointment?.clientId]);
 
   const setStatus = async (status: 'completed' | 'noShow'): Promise<void> => {
     setBusy(true);
@@ -108,15 +130,34 @@ export function BarberAppointmentDetailsScreen({
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             <MutedText>Client</MutedText>
             <BodyText style={{ fontWeight: font.weight.semibold }}>
-              {appointment.guestClient ? appointment.guestClient.name : 'Registered client'}
+              {clientName(appointment, client)}
             </BodyText>
           </View>
-          {appointment.guestClient?.phone ? (
+          {clientPhone(appointment, client) ? (
             <>
               <Divider />
               <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                 <MutedText>Phone</MutedText>
-                <BodyText>{appointment.guestClient.phone}</BodyText>
+                <Pressable
+                  onPress={() => void Linking.openURL(`tel:${clientPhone(appointment, client)}`)}
+                >
+                  <BodyText style={{ color: colors.accent, fontWeight: font.weight.semibold }}>
+                    {clientPhone(appointment, client)}
+                  </BodyText>
+                </Pressable>
+              </View>
+            </>
+          ) : null}
+          {client?.email ? (
+            <>
+              <Divider />
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <MutedText>Email</MutedText>
+                <Pressable onPress={() => void Linking.openURL(`mailto:${client.email}`)}>
+                  <BodyText style={{ color: colors.accent, fontWeight: font.weight.semibold }}>
+                    {client.email}
+                  </BodyText>
+                </Pressable>
               </View>
             </>
           ) : null}
@@ -192,6 +233,16 @@ export function BarberAppointmentDetailsScreen({
       ) : null}
     </Screen>
   );
+}
+
+function clientName(appointment: AppointmentDoc, user: UserDoc | null): string {
+  if (appointment.guestClient) return appointment.guestClient.name;
+  return user?.displayName?.trim() || user?.email || 'Registered client';
+}
+
+function clientPhone(appointment: AppointmentDoc, user: UserDoc | null): string | null {
+  if (appointment.guestClient?.phone) return appointment.guestClient.phone;
+  return user?.phone ?? null;
 }
 
 const styles = StyleSheet.create({

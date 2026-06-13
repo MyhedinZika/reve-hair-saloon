@@ -60,7 +60,7 @@ service cloud.firestore {
     match /appointments/{id} {
       allow read: if isSignedIn() && (
         isAdmin() ||
-        (isBarber() && resource.data.barberId == request.auth.uid) ||
+        (isBarber() && get(/databases/$(database)/documents/barbers/$(resource.data.barberId)).data.userId == request.auth.uid) ||
         (isClient() && resource.data.clientId == request.auth.uid)
       );
       allow write: if false;
@@ -77,7 +77,7 @@ service cloud.firestore {
         resource.data.senderId == request.auth.uid ||
         exists(/databases/$(database)/documents/appointments/$(resource.data.appointmentId)) &&
         (
-          get(/databases/$(database)/documents/appointments/$(resource.data.appointmentId)).data.barberId == request.auth.uid ||
+          get(/databases/$(database)/documents/barbers/$(get(/databases/$(database)/documents/appointments/$(resource.data.appointmentId)).data.barberId)).data.userId == request.auth.uid ||
           get(/databases/$(database)/documents/appointments/$(resource.data.appointmentId)).data.clientId == request.auth.uid
         )
       );
@@ -88,7 +88,7 @@ service cloud.firestore {
         && request.resource.data.text.size() <= 2000
         && exists(/databases/$(database)/documents/appointments/$(request.resource.data.appointmentId))
         && (
-          get(/databases/$(database)/documents/appointments/$(request.resource.data.appointmentId)).data.barberId == request.auth.uid ||
+          get(/databases/$(database)/documents/barbers/$(get(/databases/$(database)/documents/appointments/$(request.resource.data.appointmentId)).data.barberId)).data.userId == request.auth.uid ||
           get(/databases/$(database)/documents/appointments/$(request.resource.data.appointmentId)).data.clientId == request.auth.uid
         )
         && get(/databases/$(database)/documents/appointments/$(request.resource.data.appointmentId)).data.status == 'confirmed';

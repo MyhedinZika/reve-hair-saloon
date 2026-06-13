@@ -185,6 +185,11 @@ export interface BlockUserInput {
   reason?: string;
 }
 
+export interface SetUserRoleInput {
+  uid: string;
+  role: Role;
+}
+
 export interface UpdateWorkingHoursInput {
   barberId: string;
   dayOfWeek: DayOfWeek;

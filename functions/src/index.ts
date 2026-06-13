@@ -17,6 +17,7 @@ export {
   blockUser,
   unblockUser,
   markStatus,
+  setUserRole,
   exportClientHistory,
 } from './admin';
 

@@ -8,7 +8,10 @@ import {
   type BarberDoc,
   type CreateAppointmentInput,
   type ServiceDoc,
+  type UserDoc,
 } from '@salon/shared';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { firestore } from '../../config/firebase';
 import {
   BodyText,
   Button,
@@ -37,7 +40,9 @@ export function CreateAppointmentScreen({ navigation }: Props): React.JSX.Elemen
   const [slots, setSlots] = useState<number[] | null>(null);
   const [startAt, setStartAt] = useState<number | null>(null);
   const [mode, setMode] = useState<Mode>('guest');
-  const [clientUid, setClientUid] = useState('');
+  const [clients, setClients] = useState<UserDoc[]>([]);
+  const [clientSearch, setClientSearch] = useState('');
+  const [selectedClient, setSelectedClient] = useState<UserDoc | null>(null);
   const [guestName, setGuestName] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
   const [busy, setBusy] = useState(false);
@@ -45,7 +50,29 @@ export function CreateAppointmentScreen({ navigation }: Props): React.JSX.Elemen
   useEffect(() => {
     stores.listBarbers().then(setBarbers);
     stores.listServices().then(setServices);
+    void (async () => {
+      try {
+        const snap = await getDocs(
+          query(collection(firestore, 'users'), where('role', '==', 'client')),
+        );
+        setClients(snap.docs.map((d) => d.data() as UserDoc));
+      } catch {
+        setClients([]);
+      }
+    })();
   }, []);
+
+  const filteredClients = useMemo(() => {
+    const q = clientSearch.trim().toLowerCase();
+    if (!q) return clients.slice(0, 8);
+    return clients
+      .filter((c) => {
+        const name = (c.displayName ?? '').toLowerCase();
+        const email = (c.email ?? '').toLowerCase();
+        return name.includes(q) || email.includes(q);
+      })
+      .slice(0, 8);
+  }, [clients, clientSearch]);
 
   const totalDuration = useMemo(
     () =>
@@ -96,11 +123,11 @@ export function CreateAppointmentScreen({ navigation }: Props): React.JSX.Elemen
       startAt,
     };
     if (mode === 'registered') {
-      if (!clientUid.trim()) {
-        Alert.alert('Missing client', 'Enter the client uid.');
+      if (!selectedClient) {
+        Alert.alert('Missing client', 'Search for and pick a client.');
         return;
       }
-      input.onBehalfOfClientId = clientUid.trim();
+      input.onBehalfOfClientId = selectedClient.uid;
     } else {
       if (!guestName.trim() || !guestPhone.trim()) {
         Alert.alert('Missing guest details', 'Enter name and phone.');
@@ -239,7 +266,63 @@ export function CreateAppointmentScreen({ navigation }: Props): React.JSX.Elemen
         </View>
 
         {mode === 'registered' ? (
-          <Input label="Client uid" value={clientUid} onChangeText={setClientUid} autoCapitalize="none" />
+          <View style={{ gap: spacing.sm }}>
+            {selectedClient ? (
+              <View style={styles.clientPickedRow}>
+                <View style={{ flex: 1 }}>
+                  <BodyText style={{ fontWeight: font.weight.semibold }}>
+                    {selectedClient.displayName || selectedClient.email || selectedClient.uid}
+                  </BodyText>
+                  {selectedClient.email ? (
+                    <MutedText style={{ fontSize: font.size.sm }}>{selectedClient.email}</MutedText>
+                  ) : null}
+                </View>
+                <Pressable
+                  onPress={() => {
+                    setSelectedClient(null);
+                    setClientSearch('');
+                  }}
+                >
+                  <BodyText style={{ color: colors.accent, fontWeight: font.weight.semibold }}>
+                    Change
+                  </BodyText>
+                </Pressable>
+              </View>
+            ) : (
+              <>
+                <Input
+                  label="Search client by name or email"
+                  value={clientSearch}
+                  onChangeText={setClientSearch}
+                  autoCapitalize="none"
+                />
+                {filteredClients.length === 0 ? (
+                  <MutedText>
+                    {clientSearch.trim()
+                      ? 'No matching client. Check spelling or have them sign up first.'
+                      : 'No registered clients yet.'}
+                  </MutedText>
+                ) : (
+                  <View style={{ gap: spacing.xs }}>
+                    {filteredClients.map((c) => (
+                      <Pressable
+                        key={c.uid}
+                        onPress={() => setSelectedClient(c)}
+                        style={styles.clientRow}
+                      >
+                        <BodyText style={{ fontWeight: font.weight.semibold }}>
+                          {c.displayName || '(no name)'}
+                        </BodyText>
+                        <MutedText style={{ fontSize: font.size.sm }}>
+                          {c.email || c.phone || c.uid}
+                        </MutedText>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+              </>
+            )}
+          </View>
         ) : (
           <View>
             <Input label="Guest name" value={guestName} onChangeText={setGuestName} />
@@ -275,6 +358,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.xl,
     paddingBottom: spacing.xxl,
+    gap: spacing.md,
+  },
+  clientRow: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.md,
+  },
+  clientPickedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.md,
     gap: spacing.md,
   },
 });

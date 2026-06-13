@@ -11,6 +11,8 @@ import {
   type BlockedUserDoc,
   type BreakDoc,
   type MarkStatusInput,
+  type Role,
+  type SetUserRoleInput,
   type UpdateBreaksInput,
   type UpdateWorkingHoursInput,
   type WorkingHoursDoc,
@@ -191,6 +193,24 @@ export const markStatus = onCall<MarkStatusInput, Promise<{ ok: true }>>(async (
   }
 
   await ref.update({ status });
+  return { ok: true };
+});
+
+const ALLOWED_ROLES: Role[] = ['admin', 'barber', 'client'];
+
+export const setUserRole = onCall<SetUserRoleInput, Promise<{ ok: true }>>(async (request) => {
+  await requireRole(request, ['admin']);
+  const { uid, role } = request.data;
+  if (!uid || !ALLOWED_ROLES.includes(role)) {
+    throw new HttpsError('invalid-argument', 'uid and a valid role are required.');
+  }
+  const ref = collections.users().doc(uid);
+  const snap = await ref.get();
+  if (!snap.exists) {
+    throw new HttpsError('not-found', 'User not found.');
+  }
+  await ref.update({ role });
+  logger.info('User role updated', { uid, role });
   return { ok: true };
 });
 

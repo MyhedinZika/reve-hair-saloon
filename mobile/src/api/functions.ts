@@ -10,6 +10,7 @@ import type {
   NextAvailableInput,
   NextAvailableOutput,
   RescheduleAppointmentInput,
+  SetUserRoleInput,
   UpdateBreaksInput,
   UpdateWorkingHoursInput,
 } from '@salon/shared';
@@ -38,6 +39,7 @@ export const api = {
   blockUser: callable<BlockUserInput, { ok: true }>('blockUser'),
   unblockUser: callable<{ uid: string }, { ok: true }>('unblockUser'),
   markStatus: callable<MarkStatusInput, { ok: true }>('markStatus'),
+  setUserRole: callable<SetUserRoleInput, { ok: true }>('setUserRole'),
   exportClientHistory: callable<void, { appointments: AppointmentDoc[] }>('exportClientHistory'),
   todayDate: callable<void, { date: string }>('todayDate'),
 };
