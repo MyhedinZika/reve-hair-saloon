@@ -9,7 +9,6 @@ import {
   Card,
   Heading,
   MutedText,
-  Pill,
   Screen,
 } from '../../theme/components';
 import { colors, font, radius, spacing } from '../../theme/tokens';
@@ -66,20 +65,16 @@ export function AppointmentsScreen({ navigation }: Props): React.JSX.Element {
     <Screen padded={false}>
       <View style={styles.header}>
         <Heading level={2}>{t('myBookings')}</Heading>
-        <View style={styles.segmentRow}>
-          <Pill
-            label={`${t('upcoming')} ${upcoming.length}`}
+        <View style={styles.tabRow}>
+          <FilterTab
+            label={`${t('upcoming')} (${upcoming.length})`}
             selected={filter === 'upcoming'}
-            selectedTone="accent"
             onPress={() => setFilter('upcoming')}
-            style={{ flex: 1 }}
           />
-          <Pill
-            label={`${t('past')} ${past.length}`}
+          <FilterTab
+            label={`${t('past')} (${past.length})`}
             selected={filter === 'past'}
-            selectedTone="accent"
             onPress={() => setFilter('past')}
-            style={{ flex: 1 }}
           />
         </View>
       </View>
@@ -111,6 +106,36 @@ export function AppointmentsScreen({ navigation }: Props): React.JSX.Element {
         ))}
       </ScrollView>
     </Screen>
+  );
+}
+
+interface FilterTabProps {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}
+
+function FilterTab({ label, selected, onPress }: FilterTabProps): React.JSX.Element {
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.tab,
+        selected ? styles.tabSelected : null,
+        pressed ? { opacity: 0.82 } : null,
+      ]}
+    >
+      <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.86}
+        style={[styles.tabText, selected ? styles.tabTextSelected : null]}
+      >
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -165,10 +190,36 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingBottom: spacing.lg,
   },
-  segmentRow: {
+  tabRow: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    backgroundColor: colors.bgAlt,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 3,
     marginTop: spacing.lg,
+  },
+  tab: {
+    flex: 1,
+    minHeight: 40,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+  },
+  tabSelected: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+  },
+  tabText: {
+    color: colors.mutedStrong,
+    fontSize: font.size.md,
+    fontWeight: font.weight.semibold,
+    letterSpacing: 0,
+  },
+  tabTextSelected: {
+    color: colors.ink,
   },
   content: {
     paddingHorizontal: spacing.xl,
