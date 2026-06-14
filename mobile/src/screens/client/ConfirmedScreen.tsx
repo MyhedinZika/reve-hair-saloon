@@ -1,14 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Linking, StyleSheet, Text, View } from 'react-native';
+import { Linking, StatusBar, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AppointmentDoc, BarberDoc, ServiceDoc } from '@salon/shared';
 import {
-  BodyText,
   BottomBar,
   Button,
-  Card,
-  Heading,
-  MutedText,
   Screen,
 } from '../../theme/components';
 import { colors, font, radius, spacing } from '../../theme/tokens';
@@ -41,15 +37,6 @@ export function ConfirmedScreen({ navigation, route }: Props): React.JSX.Element
 
   const totalCents = services.reduce((acc, service) => acc + service.priceCents, 0);
 
-  const goHome = (): void => {
-    const parent = navigation.getParent();
-    if (parent) {
-      parent.goBack();
-      return;
-    }
-    navigation.popToTop();
-  };
-
   const viewAppointment = (): void => {
     const parent = navigation.getParent() as
       | { goBack: () => void; navigate: (name: string, params: { appointmentId: string }) => void }
@@ -79,40 +66,40 @@ export function ConfirmedScreen({ navigation, route }: Props): React.JSX.Element
       : t('serviceCount', { count: appointment?.serviceIds.length ?? 0 });
 
   return (
-    <Screen padded={false}>
+    <Screen padded={false} style={{ backgroundColor: colors.ink }}>
+      <StatusBar barStyle="light-content" />
       <View style={styles.content}>
-        <View style={styles.successMark}>
-          <Text style={styles.successCheck}>✓</Text>
-        </View>
-        <Heading level={2}>{t('youAreBooked')}</Heading>
-        <MutedText style={styles.subtitle}>
-          {t('bookingConfirmedSubtitle')}
-        </MutedText>
-
-        <Card style={styles.summaryCard}>
-          <BodyText style={{ fontWeight: font.weight.semibold }}>
-            {capitalize(serviceLabel)}
-          </BodyText>
-          <MutedText style={{ marginTop: spacing.xs }}>
-            {t('withBarber', { barber: barber?.displayName ?? t('yourBarber') })}
-            {appointment ? ` - ${formatDateLong(appointment.startAt)} - ${formatTimeOfDay(appointment.startAt)}` : ''}
-          </MutedText>
-          <View style={styles.divider} />
-          <View style={styles.totalRow}>
-            <MutedText>Rêve Hair Salon</MutedText>
-            <BodyText style={{ fontWeight: font.weight.semibold }}>
-              €{formatPrice(totalCents)}
-            </BodyText>
+        <View style={styles.successHalo}>
+          <View style={styles.successMark}>
+            <Text style={styles.successCheck}>✓</Text>
           </View>
-        </Card>
+        </View>
+        <Text style={styles.title}>{t('youAreBooked')}</Text>
+        <Text style={styles.subtitle}>{t('bookingConfirmedSubtitle')}</Text>
+
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryTitle}>{capitalize(serviceLabel)}</Text>
+          <Text style={styles.summaryMeta}>
+            {t('withBarber', { barber: barber?.displayName ?? t('yourBarber') })}
+            {appointment
+              ? ` · ${formatDateLong(appointment.startAt)} · ${formatTimeOfDay(appointment.startAt)}`
+              : ''}
+          </Text>
+          <View style={styles.summaryDivider} />
+          <View style={styles.totalRow}>
+            <Text style={styles.salonName}>Rêve Hair Salon</Text>
+            <Text style={styles.totalValue}>€{formatPrice(totalCents)}</Text>
+          </View>
+        </View>
       </View>
 
-      <BottomBar>
-        <Button title={t('viewAppointment')} onPress={viewAppointment} />
+      <BottomBar bordered={false} style={{ backgroundColor: colors.ink }}>
+        <Button title={t('viewAppointment')} variant="accent" onPress={viewAppointment} />
         <Button
           title={t('addToCalendar')}
           variant="secondary"
-          style={{ marginTop: spacing.sm }}
+          style={styles.calendarButton}
+          textStyle={{ color: colors.card, fontWeight: font.weight.medium }}
           onPress={addToCalendar}
           disabled={!appointment}
         />
@@ -126,7 +113,6 @@ function capitalize(value: string): string {
 }
 
 function toGcalDate(ms: number): string {
-  // YYYYMMDDTHHMMSSZ (UTC)
   return new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 }
 
@@ -134,40 +120,88 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: spacing.xl,
-    paddingTop: 84,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  successMark: {
+  successHalo: {
     width: 96,
     height: 96,
     borderRadius: radius.pill,
-    backgroundColor: colors.successSoft,
+    backgroundColor: 'rgba(31, 145, 98, 0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: spacing.xl,
+  },
+  successMark: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.pill,
+    backgroundColor: '#1f9162',
     alignItems: 'center',
     justifyContent: 'center',
   },
   successCheck: {
-    color: colors.success,
-    fontSize: 42,
+    color: '#fff',
+    fontSize: 32,
+    lineHeight: 36,
+    fontWeight: font.weight.bold,
+  },
+  title: {
+    fontSize: 28,
     fontWeight: font.weight.semibold,
-    lineHeight: 48,
+    color: '#fff',
+    letterSpacing: -0.5,
   },
   subtitle: {
+    fontSize: 15,
+    color: '#B1B1B9',
+    lineHeight: 22,
     marginTop: spacing.sm,
     marginBottom: spacing.xl,
     textAlign: 'center',
+    maxWidth: 280,
   },
   summaryCard: {
     alignSelf: 'stretch',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+    borderRadius: 16,
+    padding: 18,
   },
-  divider: {
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: font.weight.semibold,
+    color: '#fff',
+  },
+  summaryMeta: {
+    fontSize: 13,
+    color: '#B1B1B9',
+    marginTop: 4,
+  },
+  summaryDivider: {
     height: 1,
-    backgroundColor: colors.border,
-    marginVertical: spacing.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.10)',
+    marginVertical: 14,
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: spacing.md,
+    alignItems: 'baseline',
+  },
+  salonName: {
+    fontSize: 13,
+    color: '#B1B1B9',
+  },
+  totalValue: {
+    fontSize: 14,
+    fontWeight: font.weight.semibold,
+    color: colors.accent,
+  },
+  calendarButton: {
+    marginTop: spacing.sm,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
   },
 });

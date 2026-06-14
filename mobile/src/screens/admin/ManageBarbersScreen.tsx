@@ -196,7 +196,12 @@ export function ManageBarbersScreen(): React.JSX.Element {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl, gap: spacing.md }}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: spacing.xxl, gap: spacing.md }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        automaticallyAdjustKeyboardInsets
+      >
         {barbers.map((b) => {
           const isEditing = editingId === b.id;
           return (

@@ -54,6 +54,14 @@ function Tabs(): React.JSX.Element {
         }}
       />
       <Tab.Screen
+        name="Hours"
+        component={HoursScreen}
+        options={{
+          title: t('hours'),
+          tabBarIcon: ({ color, focused }) => <TabIcon name="hours" color={color} focused={focused} />,
+        }}
+      />
+      <Tab.Screen
         name="Inbox"
         component={BarberInboxScreen}
         options={{

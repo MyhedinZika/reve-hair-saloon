@@ -11,9 +11,11 @@ import {
   type BlockedUserDoc,
   type BreakDoc,
   type MarkStatusInput,
+  type RecurringBreakDoc,
   type Role,
   type SetUserRoleInput,
   type UpdateBreaksInput,
+  type UpdateRecurringBreaksInput,
   type UpdateWorkingHoursInput,
   type WorkingHoursDoc,
 } from '@salon/shared';
@@ -140,6 +142,60 @@ export const updateBreaks = onCall<
     updatedAt: Date.now(),
   };
   await collections.breaks().doc(id).set(doc);
+  return { ok: true, conflicts };
+});
+
+export const updateRecurringBreaks = onCall<
+  UpdateRecurringBreaksInput,
+  Promise<{ ok: true; conflicts: ConflictReport[] }>
+>(async (request) => {
+  await requireRole(request, ['admin', 'barber']);
+  const { barberId, dayOfWeek, blocks } = request.data;
+  if (!barberId || !dayOfWeek || !Array.isArray(blocks)) {
+    throw new HttpsError(
+      'invalid-argument',
+      'barberId, dayOfWeek, and blocks are required.',
+    );
+  }
+
+  // Check future confirmed appointments on this day-of-week for overlap.
+  const futureAppts = await collections
+    .appointments()
+    .where('barberId', '==', barberId)
+    .where('startAt', '>=', Date.now())
+    .get();
+
+  const conflicts: ConflictReport[] = [];
+  for (const apptDoc of futureAppts.docs) {
+    const a = apptDoc.data();
+    if (a.status !== 'confirmed') continue;
+    if (dayOfWeekFromUtcMs(a.startAt) !== dayOfWeek) continue;
+    const dateStr = dateStringFromUtcMs(a.startAt);
+    for (const b of blocks) {
+      const { startMs, endMs } = timeBlockToUtcRange(dateStr, b.start, b.end);
+      if (a.startAt < endMs && a.endAt > startMs) {
+        conflicts.push({ appointmentId: a.id, startAt: a.startAt, endAt: a.endAt });
+      }
+    }
+  }
+
+  if (conflicts.length > 0) {
+    throw new HttpsError(
+      'failed-precondition',
+      `Recurring break overlaps ${conflicts.length} existing appointment(s). Cancel or reschedule them first.`,
+      conflicts,
+    );
+  }
+
+  const id = `${barberId}_${dayOfWeek}`;
+  const doc: RecurringBreakDoc = {
+    id,
+    barberId,
+    dayOfWeek,
+    blocks,
+    updatedAt: Date.now(),
+  };
+  await collections.recurringBreaks().doc(id).set(doc);
   return { ok: true, conflicts };
 });
 

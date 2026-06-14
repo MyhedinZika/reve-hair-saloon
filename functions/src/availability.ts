@@ -1,5 +1,6 @@
 import {
   computeAvailableSlots,
+  computeDaySchedule,
   dayOfWeekFromDateString,
   endOfDayUtcMs,
   startOfDayUtcMs,
@@ -15,14 +16,21 @@ export interface AvailabilityArgs {
   excludeAppointmentId?: string;
 }
 
-export async function loadAvailability(args: AvailabilityArgs): Promise<number[]> {
+async function loadComputeArgs(args: AvailabilityArgs): Promise<{
+  date: string;
+  workingBlocks: TimeBlock[];
+  breakBlocks: TimeBlock[];
+  appointmentRanges: Range[];
+  timeOffRanges: Range[];
+  serviceDurationMinutes: number;
+  nowMs: number;
+}> {
   const { barberId, date, serviceDurationMinutes, excludeAppointmentId } = args;
-
   const dayOfWeek = dayOfWeekFromDateString(date);
   const dayStart = startOfDayUtcMs(date);
   const dayEnd = endOfDayUtcMs(date);
 
-  const [whSnap, brSnap, apSnap, toSnap] = await Promise.all([
+  const [whSnap, brSnap, rbSnap, apSnap, toSnap] = await Promise.all([
     collections
       .workingHours()
       .where('barberId', '==', barberId)
@@ -33,6 +41,12 @@ export async function loadAvailability(args: AvailabilityArgs): Promise<number[]
       .breaks()
       .where('barberId', '==', barberId)
       .where('date', '==', date)
+      .limit(1)
+      .get(),
+    collections
+      .recurringBreaks()
+      .where('barberId', '==', barberId)
+      .where('dayOfWeek', '==', dayOfWeek)
       .limit(1)
       .get(),
     collections
@@ -49,8 +63,9 @@ export async function loadAvailability(args: AvailabilityArgs): Promise<number[]
   ]);
 
   const workingBlocks: TimeBlock[] = whSnap.docs[0]?.data().blocks ?? [];
-  const breakBlocks: TimeBlock[] = brSnap.docs[0]?.data().blocks ?? [];
-
+  const perDateBreaks: TimeBlock[] = brSnap.docs[0]?.data().blocks ?? [];
+  const recurringBreaks: TimeBlock[] = rbSnap.docs[0]?.data().blocks ?? [];
+  const breakBlocks: TimeBlock[] = [...perDateBreaks, ...recurringBreaks];
   const appointmentRanges: Range[] = apSnap.docs
     .map((d) => d.data())
     .filter((a) => {
@@ -58,13 +73,12 @@ export async function loadAvailability(args: AvailabilityArgs): Promise<number[]
       return a.status === 'confirmed';
     })
     .map((a) => ({ startMs: a.startAt, endMs: a.endAt }));
-
   const timeOffRanges: Range[] = toSnap.docs
     .map((d) => d.data())
     .filter((t) => t.startAt < dayEnd && t.endAt > dayStart)
     .map((t) => ({ startMs: t.startAt, endMs: t.endAt }));
 
-  return computeAvailableSlots({
+  return {
     date,
     workingBlocks,
     breakBlocks,
@@ -72,5 +86,19 @@ export async function loadAvailability(args: AvailabilityArgs): Promise<number[]
     timeOffRanges,
     serviceDurationMinutes,
     nowMs: Date.now(),
-  });
+  };
 }
+
+export async function loadAvailability(args: AvailabilityArgs): Promise<number[]> {
+  const computeArgs = await loadComputeArgs(args);
+  return computeAvailableSlots(computeArgs);
+}
+
+export async function loadDaySchedule(args: AvailabilityArgs): Promise<{
+  available: number[];
+  unavailable: number[];
+}> {
+  const computeArgs = await loadComputeArgs(args);
+  return computeDaySchedule(computeArgs);
+}
+

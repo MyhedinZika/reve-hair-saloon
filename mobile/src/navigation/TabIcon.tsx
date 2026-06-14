@@ -5,6 +5,7 @@ export type TabIconName =
   | 'appointments'
   | 'dashboard'
   | 'home'
+  | 'hours'
   | 'inbox'
   | 'manage'
   | 'profile'
@@ -14,6 +15,7 @@ const GLYPH: Record<TabIconName, string> = {
   appointments: '□',
   dashboard: '▦',
   home: '⌂',
+  hours: '◴',
   inbox: '✉',
   manage: '+',
   profile: '○',

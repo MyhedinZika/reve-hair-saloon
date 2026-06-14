@@ -14,6 +14,7 @@ export {
 export {
   updateWorkingHours,
   updateBreaks,
+  updateRecurringBreaks,
   blockUser,
   unblockUser,
   markStatus,

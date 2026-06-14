@@ -1,9 +1,11 @@
 import {
   ActivityIndicator,
+  Keyboard,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
+  TouchableWithoutFeedback,
   View,
   type PressableProps,
   type StyleProp,
@@ -18,9 +20,21 @@ import { colors, font, radius, spacing } from './tokens';
 
 interface ScreenProps extends ViewProps {
   padded?: boolean;
+  /**
+   * Dismiss the keyboard when the user taps an area outside an input.
+   * Defaults to true; pass false on screens whose taps would conflict
+   * (e.g., screens with their own gesture handlers).
+   */
+  dismissKeyboardOnTap?: boolean;
 }
 
-export function Screen({ style, padded = true, ...rest }: ScreenProps): React.JSX.Element {
+export function Screen({
+  style,
+  padded = true,
+  dismissKeyboardOnTap = true,
+  children,
+  ...rest
+}: ScreenProps): React.JSX.Element {
   const insets = useSafeAreaInsets();
   return (
     <View
@@ -31,7 +45,18 @@ export function Screen({ style, padded = true, ...rest }: ScreenProps): React.JS
         padded ? { paddingHorizontal: spacing.xl } : null,
         style,
       ]}
-    />
+    >
+      {dismissKeyboardOnTap ? (
+        <TouchableWithoutFeedback
+          onPress={() => Keyboard.dismiss()}
+          accessible={false}
+        >
+          <View style={{ flex: 1 }}>{children}</View>
+        </TouchableWithoutFeedback>
+      ) : (
+        children
+      )}
+    </View>
   );
 }
 

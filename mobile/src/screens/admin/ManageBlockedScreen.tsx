@@ -134,7 +134,12 @@ export function ManageBlockedScreen(): React.JSX.Element {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl, gap: spacing.md }}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: spacing.xxl, gap: spacing.md }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        automaticallyAdjustKeyboardInsets
+      >
         {items.length === 0 ? <MutedText>No blocked users.</MutedText> : null}
         {items.map((u) => {
           const profile = usersByUid[u.uid];

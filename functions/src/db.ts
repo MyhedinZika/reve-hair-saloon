@@ -6,6 +6,7 @@ import type {
   BreakDoc,
   MessageDoc,
   NotificationDoc,
+  RecurringBreakDoc,
   ServiceDoc,
   SettingsDoc,
   SlotClaimDoc,
@@ -36,6 +37,8 @@ export const collections = {
   workingHours: (): CollectionReference<WorkingHoursDoc> =>
     typedCollection<WorkingHoursDoc>('workingHours'),
   breaks: (): CollectionReference<BreakDoc> => typedCollection<BreakDoc>('breaks'),
+  recurringBreaks: (): CollectionReference<RecurringBreakDoc> =>
+    typedCollection<RecurringBreakDoc>('recurringBreaks'),
   timeOffs: (): CollectionReference<TimeOffDoc> => typedCollection<TimeOffDoc>('timeOffs'),
   slotClaims: (): CollectionReference<SlotClaimDoc> =>
     typedCollection<SlotClaimDoc>('slotClaims'),

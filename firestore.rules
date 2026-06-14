@@ -8,19 +8,22 @@ service cloud.firestore {
     }
 
     function userRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+        : null;
     }
 
     function isAdmin() {
-      return isSignedIn() && userRole() == 'admin';
+      return userRole() == 'admin';
     }
 
     function isBarber() {
-      return isSignedIn() && userRole() == 'barber';
+      return userRole() == 'barber';
     }
 
     function isClient() {
-      return isSignedIn() && userRole() == 'client';
+      return userRole() == 'client';
     }
 
     match /users/{uid} {
@@ -53,6 +56,11 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /recurringBreaks/{id} {
+      allow read: if isAdmin() || isBarber();
+      allow write: if false;
+    }
+
     match /timeOffs/{id} {
       allow read: if isSignedIn();
       allow write: if false;
@@ -61,7 +69,11 @@ service cloud.firestore {
     match /appointments/{id} {
       allow read: if isSignedIn() && (
         isAdmin() ||
-        (isBarber() && get(/databases/$(database)/documents/barbers/$(resource.data.barberId)).data.userId == request.auth.uid) ||
+        (
+          isBarber()
+          && exists(/databases/$(database)/documents/barbers/$(resource.data.barberId))
+          && get(/databases/$(database)/documents/barbers/$(resource.data.barberId)).data.userId == request.auth.uid
+        ) ||
         (isClient() && resource.data.clientId == request.auth.uid)
       );
       allow write: if false;

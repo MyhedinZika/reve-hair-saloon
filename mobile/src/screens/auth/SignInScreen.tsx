@@ -56,6 +56,8 @@ export function SignInScreen({ navigation }: Props): React.JSX.Element {
     <Screen style={{ backgroundColor: colors.card }}>
       <ScrollView
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        automaticallyAdjustKeyboardInsets
         contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl }}
       >
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>

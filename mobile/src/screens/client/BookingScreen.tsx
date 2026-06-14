@@ -56,15 +56,17 @@ const DOW_SHORT: Record<string, string> = {
   sun: 'Sun',
 };
 
-export function BookingScreen({ navigation }: Props): React.JSX.Element {
+export function BookingScreen({ navigation, route }: Props): React.JSX.Element {
+  const preselectedBarberId = route.params?.barberId ?? null;
   const { t } = useI18n();
   const [step, setStep] = useState(1);
   const [barbers, setBarbers] = useState<BarberDoc[]>([]);
   const [services, setServices] = useState<ServiceDoc[]>([]);
-  const [barberId, setBarberId] = useState<string | null>(null);
+  const [barberId, setBarberId] = useState<string | null>(preselectedBarberId);
   const [selectedServices, setSelectedServices] = useState<Set<string>>(new Set());
   const [date, setDate] = useState<string>(todayDateString());
   const [slots, setSlots] = useState<number[] | null>(null);
+  const [unavailableSlots, setUnavailableSlots] = useState<number[]>([]);
   const [startAt, setStartAt] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +79,16 @@ export function BookingScreen({ navigation }: Props): React.JSX.Element {
     stores.listBarbers().then((bs) => setBarbers(bs.filter((b) => b.active)));
     stores.listServices().then((ss) => setServices(ss.filter((s) => s.active)));
   }, []);
+
+  useEffect(() => {
+    if (preselectedBarberId && preselectedBarberId !== barberId) {
+      setBarberId(preselectedBarberId);
+      setSelectedServices(new Set());
+      setStartAt(null);
+    }
+    // We only react to incoming preselection changes; user picks are tracked separately.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preselectedBarberId]);
 
   const selectedBarber = useMemo(
     () => barbers.find((b) => b.id === barberId) ?? null,
@@ -115,12 +127,14 @@ export function BookingScreen({ navigation }: Props): React.JSX.Element {
 useEffect(() => {
     if (!barberId || totalMinutes === 0) {
       setSlots(null);
+      setUnavailableSlots([]);
       setStartAt(null);
       setNextAvail(null);
       return;
     }
     let cancelled = false;
     setSlots(null);
+    setUnavailableSlots([]);
     setStartAt(null);
     setNextAvail(null);
     api
@@ -128,6 +142,7 @@ useEffect(() => {
       .then((r) => {
         if (cancelled) return;
         setSlots(r.slots);
+        setUnavailableSlots(r.unavailable ?? []);
         if (r.slots.length === 0) {
           setNextAvail('searching');
           api
@@ -146,7 +161,9 @@ useEffect(() => {
         }
       })
       .catch(() => {
-        if (!cancelled) setSlots([]);
+        if (cancelled) return;
+        setSlots([]);
+        setUnavailableSlots([]);
       });
     return () => {
       cancelled = true;
@@ -301,7 +318,7 @@ useEffect(() => {
               {barbers.length === 0 ? (
                 <MutedText>{t('noBarbersAvailable')}</MutedText>
               ) : (
-                <View style={{ gap: spacing.md }}>
+                <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
                   {barbers.map((barber) => (
                     <BarberCard
                       key={barber.id}
@@ -400,8 +417,22 @@ useEffect(() => {
               </Card>
             ) : (
               <View style={{ gap: spacing.xl }}>
-                <TimeGroup title={t('morning')} slots={slots.filter((slot) => hourOfSlot(slot) < 12)} startAt={startAt} onPick={setStartAt} />
-                <TimeGroup title={t('afternoon')} slots={slots.filter((slot) => hourOfSlot(slot) >= 12)} startAt={startAt} onPick={setStartAt} />
+                <TimeGroup
+                  title={t('morning')}
+                  slots={mergeSchedule(slots, unavailableSlots).filter(
+                    (s) => hourOfSlot(s.startMs) < 12,
+                  )}
+                  startAt={startAt}
+                  onPick={setStartAt}
+                />
+                <TimeGroup
+                  title={t('afternoon')}
+                  slots={mergeSchedule(slots, unavailableSlots).filter(
+                    (s) => hourOfSlot(s.startMs) >= 12,
+                  )}
+                  startAt={startAt}
+                  onPick={setStartAt}
+                />
               </View>
             )}
           </View>
@@ -410,30 +441,71 @@ useEffect(() => {
         {step === 3 ? (
           <View>
             <Heading level={2}>{t('reviewAndConfirm')}</Heading>
-            <MutedText style={styles.subtitle}>{t('payInSalonPolicy')}</MutedText>
-            <Card style={{ gap: spacing.md }}>
-              <SummaryLine label={t('barber')} value={selectedBarber?.displayName ?? '-'} />
-              <View style={styles.summaryDivider} />
-              <SummaryLine
-                label={t('when')}
-                value={startAt !== null ? `${formatDateLong(startAt)} - ${formatTimeOfDay(startAt)}` : '-'}
+
+            <Card style={styles.reviewBarberCard}>
+              <BarberAvatar
+                avatarUrl={selectedBarber?.avatarUrl ?? null}
+                name={selectedBarber?.displayName ?? ''}
+                size={48}
               />
+              <View style={{ flex: 1 }}>
+                <BodyText style={{ fontWeight: font.weight.semibold }}>
+                  {selectedBarber?.displayName ?? '-'}
+                </BodyText>
+                <MutedText style={{ fontSize: font.size.sm, marginTop: 2 }}>
+                  Rêve Hair Salon
+                </MutedText>
+              </View>
+            </Card>
+
+            <Card style={styles.reviewDetailsCard}>
+              <View style={styles.reviewWhenRow}>
+                <View style={styles.reviewWhenIcon}>
+                  <Text style={styles.reviewWhenIconText}>·</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <BodyText style={{ fontWeight: font.weight.semibold }}>
+                    {startAt !== null ? formatDateLong(startAt) : '-'}
+                  </BodyText>
+                  <MutedText style={{ fontSize: font.size.sm, marginTop: 2 }}>
+                    {startAt !== null
+                      ? `${formatTimeOfDay(startAt)} · ${formatDuration(totalMinutes)}`
+                      : '-'}
+                  </MutedText>
+                </View>
+              </View>
               <View style={styles.summaryDivider} />
-              <MutedText>{t('services')}</MutedText>
               {selectedServiceDocs.map((service) => (
-                <SummaryLine
-                  key={service.id}
-                  label={service.name}
-                  value={`€${formatPrice(service.priceCents)}`}
-                />
+                <View key={service.id} style={styles.reviewServiceRow}>
+                  <MutedText>
+                    {service.name} · {formatDuration(service.durationMinutes)}
+                  </MutedText>
+                  <BodyText style={{ fontWeight: font.weight.medium }}>
+                    €{formatPrice(service.priceCents)}
+                  </BodyText>
+                </View>
               ))}
               <View style={styles.summaryDivider} />
-              <SummaryLine
-                label={t('total')}
-                value={`€${formatPrice(totalCents)} - ${formatDuration(totalMinutes)}`}
-                strong
-              />
+              <View style={styles.reviewTotalRow}>
+                <BodyText style={{ fontWeight: font.weight.semibold }}>{t('total')}</BodyText>
+                <BodyText
+                  style={{
+                    fontWeight: font.weight.semibold,
+                    fontSize: font.size.xl,
+                  }}
+                >
+                  €{formatPrice(totalCents)}
+                </BodyText>
+              </View>
             </Card>
+
+            <View style={styles.policyBanner}>
+              <Text style={styles.policyIcon}>ⓘ</Text>
+              <MutedText style={{ flex: 1, fontSize: font.size.xs, lineHeight: 18 }}>
+                {t('payInSalonPolicy')}
+              </MutedText>
+            </View>
+
             {error ? <BodyText style={styles.errorText}>{error}</BodyText> : null}
           </View>
         ) : null}
@@ -506,17 +578,25 @@ function BarberCard({ barber, selected, onPress }: BarberCardProps): React.JSX.E
   return (
     <Pressable
       onPress={onPress}
-      style={[styles.barberCard, selected ? styles.selectedCard : null]}
+      style={[styles.barberCard, selected ? styles.barberCardSelected : null]}
     >
-      <BarberAvatar avatarUrl={barber.avatarUrl} name={barber.displayName} size={56} />
-      <View style={{ flex: 1 }}>
-        <BodyText style={{ fontWeight: font.weight.semibold }}>{barber.displayName}</BodyText>
-      </View>
-      <View style={[styles.radio, selected ? styles.radioSelected : null]}>
-        {selected ? <Text style={styles.radioCheck}>✓</Text> : null}
-      </View>
+      <BarberAvatar avatarUrl={barber.avatarUrl} name={barber.displayName} size={46} />
+      <BodyText style={styles.barberCardName} numberOfLines={1}>
+        {firstWord(barber.displayName)}
+      </BodyText>
+      {selected ? (
+        <View style={styles.barberCardCheck}>
+          <Text style={styles.barberCardCheckText}>✓</Text>
+        </View>
+      ) : null}
     </Pressable>
   );
+}
+
+function firstWord(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return '';
+  return trimmed.split(/\s+/)[0]!;
 }
 
 interface ServiceRowProps {
@@ -547,9 +627,14 @@ function ServiceRow({ service, selected, onPress }: ServiceRowProps): React.JSX.
   );
 }
 
+interface ScheduleSlot {
+  startMs: number;
+  available: boolean;
+}
+
 interface TimeGroupProps {
   onPick: (slot: number) => void;
-  slots: number[];
+  slots: ScheduleSlot[];
   startAt: number | null;
   title: string;
 }
@@ -561,16 +646,27 @@ function TimeGroup({ onPick, slots, startAt, title }: TimeGroupProps): React.JSX
     <View>
       <Text style={styles.groupTitle}>{title}</Text>
       <View style={styles.timeGrid}>
-        {slots.map((slot) => {
-          const selected = startAt === slot;
+        {slots.map(({ startMs, available }) => {
+          const selected = startAt === startMs;
           return (
             <Pressable
-              key={slot}
-              onPress={() => onPick(slot)}
-              style={[styles.timeCell, selected ? styles.timeCellSelected : null]}
+              key={startMs}
+              onPress={() => available && onPick(startMs)}
+              disabled={!available}
+              style={[
+                styles.timeCell,
+                selected ? styles.timeCellSelected : null,
+                !available ? styles.timeCellDisabled : null,
+              ]}
             >
-              <Text style={[styles.timeText, selected ? styles.timeTextSelected : null]}>
-                {formatTimeOfDay(slot)}
+              <Text
+                style={[
+                  styles.timeText,
+                  selected ? styles.timeTextSelected : null,
+                  !available ? styles.timeTextDisabled : null,
+                ]}
+              >
+                {formatTimeOfDay(startMs)}
               </Text>
             </Pressable>
           );
@@ -578,6 +674,15 @@ function TimeGroup({ onPick, slots, startAt, title }: TimeGroupProps): React.JSX
       </View>
     </View>
   );
+}
+
+function mergeSchedule(available: number[], unavailable: number[]): ScheduleSlot[] {
+  const merged: ScheduleSlot[] = [
+    ...available.map((startMs) => ({ startMs, available: true })),
+    ...unavailable.map((startMs) => ({ startMs, available: false })),
+  ];
+  merged.sort((a, b) => a.startMs - b.startMs);
+  return merged;
 }
 
 interface SummaryLineProps {
@@ -704,14 +809,44 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   barberCard: {
+    flex: 1,
+    minWidth: 90,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radius.xl,
-    padding: spacing.lg,
-    flexDirection: 'row',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 6,
     alignItems: 'center',
-    gap: spacing.lg,
+    position: 'relative',
+  },
+  barberCardSelected: {
+    borderColor: colors.accent,
+    borderWidth: 1.5,
+  },
+  barberCardName: {
+    fontSize: 13,
+    fontWeight: font.weight.semibold,
+    color: colors.ink,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  barberCardCheck: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  barberCardCheckText: {
+    color: colors.card,
+    fontSize: 10,
+    fontWeight: font.weight.semibold,
+    lineHeight: 12,
   },
   selectedCard: {
     borderColor: colors.accent,
@@ -804,30 +939,28 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   dateCell: {
-    width: '13.3%',
-    minWidth: 38,
-    aspectRatio: 0.82,
-    borderRadius: radius.md,
+    width: 56,
+    paddingVertical: 10,
+    borderRadius: 13,
     alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
   },
   dateCellSelected: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
+    backgroundColor: colors.ink,
+    borderColor: colors.ink,
   },
   dateDow: {
     color: colors.mutedSoft,
-    fontSize: 10,
-    fontWeight: font.weight.semibold,
+    fontSize: 11,
+    fontWeight: font.weight.medium,
   },
   dateDay: {
     color: colors.ink,
-    fontSize: font.size.lg,
+    fontSize: 17,
     fontWeight: font.weight.semibold,
-    marginTop: 2,
+    marginTop: 3,
   },
   dateMonth: {
     color: colors.muted,
@@ -876,6 +1009,15 @@ const styles = StyleSheet.create({
   timeTextSelected: {
     color: colors.card,
   },
+  timeCellDisabled: {
+    backgroundColor: colors.bgAlt,
+    borderColor: colors.border,
+  },
+  timeTextDisabled: {
+    color: colors.mutedSoft,
+    fontWeight: font.weight.medium,
+    textDecorationLine: 'line-through',
+  },
   summaryLine: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -900,5 +1042,59 @@ const styles = StyleSheet.create({
   errorText: {
     marginTop: spacing.lg,
     color: colors.danger,
+  },
+  reviewBarberCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 13,
+    marginTop: spacing.lg,
+  },
+  reviewDetailsCard: {
+    marginTop: spacing.md,
+    gap: spacing.md,
+  },
+  reviewWhenRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  reviewWhenIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: 'rgba(239, 140, 19, 0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reviewWhenIconText: {
+    color: colors.accent,
+    fontWeight: font.weight.semibold,
+    fontSize: 18,
+    lineHeight: 22,
+  },
+  reviewServiceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  reviewTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+  },
+  policyBanner: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'flex-start',
+    backgroundColor: colors.bgAlt,
+    borderRadius: 12,
+    padding: 12,
+    marginTop: spacing.md,
+  },
+  policyIcon: {
+    color: colors.muted,
+    fontSize: 16,
+    lineHeight: 20,
+    marginTop: 1,
   },
 });

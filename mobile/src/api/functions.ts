@@ -12,6 +12,7 @@ import type {
   RescheduleAppointmentInput,
   SetUserRoleInput,
   UpdateBreaksInput,
+  UpdateRecurringBreaksInput,
   UpdateWorkingHoursInput,
 } from '@salon/shared';
 import { functions } from '../config/firebase';
@@ -36,6 +37,9 @@ export const api = {
   ),
   updateWorkingHours: callable<UpdateWorkingHoursInput, { ok: true }>('updateWorkingHours'),
   updateBreaks: callable<UpdateBreaksInput, { ok: true }>('updateBreaks'),
+  updateRecurringBreaks: callable<UpdateRecurringBreaksInput, { ok: true }>(
+    'updateRecurringBreaks',
+  ),
   blockUser: callable<BlockUserInput, { ok: true }>('blockUser'),
   unblockUser: callable<{ uid: string }, { ok: true }>('unblockUser'),
   markStatus: callable<MarkStatusInput, { ok: true }>('markStatus'),

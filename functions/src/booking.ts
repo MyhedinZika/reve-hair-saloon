@@ -27,7 +27,7 @@ import {
 } from '@salon/shared';
 import { collections, db } from './db';
 import { requireCaller, type CallerContext } from './auth';
-import { loadAvailability } from './availability';
+import { loadAvailability, loadDaySchedule } from './availability';
 import { getSettings } from './settings';
 import { sendNotification } from './notifications';
 
@@ -38,8 +38,8 @@ function ensureValidDuration(serviceIds: string[], durations: Map<string, number
   for (const id of serviceIds) {
     const d = durations.get(id);
     if (!d) throw new HttpsError('not-found', `Service not found: ${id}`);
-    if (d % SLOT_MINUTES !== 0) {
-      throw new HttpsError('failed-precondition', `Service ${id} duration not a 30-min multiple.`);
+    if (!Number.isFinite(d) || d <= 0) {
+      throw new HttpsError('failed-precondition', `Service ${id} has an invalid duration.`);
     }
     total += d;
   }
@@ -274,8 +274,8 @@ export const getAvailableSlots = onCall<GetAvailableSlotsInput, Promise<GetAvail
     if (!barberId || !date || !serviceDurationMinutes) {
       throw new HttpsError('invalid-argument', 'Missing required fields.');
     }
-    const slots = await loadAvailability({ barberId, date, serviceDurationMinutes });
-    return { slots };
+    const schedule = await loadDaySchedule({ barberId, date, serviceDurationMinutes });
+    return { slots: schedule.available, unavailable: schedule.unavailable };
   },
 );
 

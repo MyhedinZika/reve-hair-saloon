@@ -7,7 +7,7 @@ export type AuthStackParamList = {
 };
 
 export type BookingStackParamList = {
-  Book: undefined;
+  Book: { barberId?: string } | undefined;
   Confirmed: { appointmentId: string };
 };
 
@@ -28,6 +28,7 @@ export type ClientStackParamList = {
 
 export type BarberTabParamList = {
   Schedule: undefined;
+  Hours: undefined;
   Inbox: undefined;
   Profile: undefined;
 };

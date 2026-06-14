@@ -169,7 +169,7 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
           <MutedText style={{ color: '#B1B1B9' }}>
             {t('goodMorning', { name: firstName })}
           </MutedText>
-          <Heading level={1} style={styles.heroTitle}>
+          <Heading level={2} style={styles.heroTitle}>
             {t('readyFreshCut')}
           </Heading>
           <MutedText style={styles.heroCopy}>
@@ -210,15 +210,34 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
           <View style={{ marginTop: spacing.xl }}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionKicker}>{t('ourBarbers')}</Text>
-              <Text style={styles.sectionLink}>{t('seeAll')}</Text>
+              <Pressable
+                onPress={() =>
+                  navigation.navigate('BookingFlow', { screen: 'Book' })
+                }
+                hitSlop={8}
+              >
+                <Text style={styles.sectionLink}>{t('seeAll')}</Text>
+              </Pressable>
             </View>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ gap: spacing.md, paddingRight: spacing.xl }}
             >
-              {barbers.map((barber, index) => (
-                <View key={barber.id} style={styles.barberCard}>
+              {barbers.map((barber) => (
+                <Pressable
+                  key={barber.id}
+                  onPress={() =>
+                    navigation.navigate('BookingFlow', {
+                      screen: 'Book',
+                      params: { barberId: barber.id },
+                    })
+                  }
+                  style={({ pressed }) => [
+                    styles.barberCard,
+                    pressed ? { opacity: 0.85 } : null,
+                  ]}
+                >
                   <View style={styles.avatar}>
                     {barber.avatarUrl ? (
                       <Image source={{ uri: barber.avatarUrl }} style={styles.avatarImage} />
@@ -226,11 +245,10 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
                       <Text style={styles.avatarText}>{initials(barber.displayName)}</Text>
                     )}
                   </View>
-                  <BodyText style={styles.barberName}>{firstWord(barber.displayName)}</BodyText>
-                  <MutedText style={{ fontSize: font.size.sm }}>
-                    {index === 0 ? t('masterBarber') : index === 1 ? t('seniorStylist') : t('barber')}
-                  </MutedText>
-                </View>
+                  <BodyText style={styles.barberName} numberOfLines={1}>
+                    {firstWord(barber.displayName)}
+                  </BodyText>
+                </Pressable>
               ))}
             </ScrollView>
           </View>

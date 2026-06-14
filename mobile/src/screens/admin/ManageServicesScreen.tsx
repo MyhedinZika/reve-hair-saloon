@@ -36,8 +36,8 @@ export function ManageServicesScreen(): React.JSX.Element {
       Alert.alert('Invalid', 'Name and price are required.');
       return;
     }
-    if (!Number.isFinite(minutes) || minutes <= 0 || minutes % SLOT_MINUTES !== 0) {
-      Alert.alert('Invalid duration', `Must be a positive multiple of ${SLOT_MINUTES} minutes.`);
+    if (!Number.isFinite(minutes) || minutes <= 0) {
+      Alert.alert('Invalid duration', 'Must be a positive number of minutes.');
       return;
     }
     setBusy(true);
@@ -72,7 +72,12 @@ export function ManageServicesScreen(): React.JSX.Element {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl, gap: spacing.md }}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: spacing.xxl, gap: spacing.md }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        automaticallyAdjustKeyboardInsets
+      >
         {services.map((s) => (
           <Card key={s.id}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -104,11 +109,14 @@ export function ManageServicesScreen(): React.JSX.Element {
             keyboardType="decimal-pad"
           />
           <Input
-            label={`Duration (multiple of ${SLOT_MINUTES} min)`}
+            label="Duration (minutes)"
             value={duration}
             onChangeText={setDuration}
             keyboardType="number-pad"
           />
+          <MutedText style={{ fontSize: font.size.xs }}>
+            Note: bookings are scheduled in {SLOT_MINUTES}-minute slots, so any service shorter than {SLOT_MINUTES} min still reserves a full slot on the calendar.
+          </MutedText>
           <Button title="Create" onPress={create} loading={busy} />
         </Card>
       </ScrollView>

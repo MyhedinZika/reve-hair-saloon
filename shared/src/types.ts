@@ -59,6 +59,15 @@ export interface BreakDoc {
   updatedAt: number;
 }
 
+/** Per-day-of-week recurring break (e.g., daily lunch 12:00-13:00). */
+export interface RecurringBreakDoc {
+  id: string;
+  barberId: string;
+  dayOfWeek: DayOfWeek;
+  blocks: TimeBlock[];
+  updatedAt: number;
+}
+
 export interface TimeOffDoc {
   id: string;
   barberId: string;
@@ -153,6 +162,8 @@ export interface GetAvailableSlotsInput {
 
 export interface GetAvailableSlotsOutput {
   slots: number[];
+  /** Slot starts inside working hours that are NOT bookable (booked, on break, past, or won't fit the service). */
+  unavailable?: number[];
 }
 
 export interface NextAvailableInput {
@@ -199,5 +210,11 @@ export interface UpdateWorkingHoursInput {
 export interface UpdateBreaksInput {
   barberId: string;
   date: string;
+  blocks: TimeBlock[];
+}
+
+export interface UpdateRecurringBreaksInput {
+  barberId: string;
+  dayOfWeek: DayOfWeek;
   blocks: TimeBlock[];
 }

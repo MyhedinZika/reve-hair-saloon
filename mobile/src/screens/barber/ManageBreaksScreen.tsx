@@ -89,7 +89,13 @@ export function ManageBreaksScreen({ barberId }: ManageBreaksScreenProps): React
     <Screen padded={false}>
       <BreaksHeader onBack={() => navigation.goBack()} />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        automaticallyAdjustKeyboardInsets
+      >
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}

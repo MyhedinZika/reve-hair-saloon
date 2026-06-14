@@ -83,7 +83,12 @@ export function ManageSettingsScreen(): React.JSX.Element {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: spacing.xxl }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        automaticallyAdjustKeyboardInsets
+      >
         <Input label="Salon name" value={salonName} onChangeText={setSalonName} />
         <Input label="Address" value={address} onChangeText={setAddress} />
         <Input label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
