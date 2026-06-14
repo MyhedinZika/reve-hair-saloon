@@ -36,6 +36,11 @@ export interface ServiceDoc {
   durationMinutes: number;
   active: boolean;
   createdAt: number;
+  /**
+   * Display order — lower values shown first. Optional for backward compat;
+   * undefined sorts after defined values.
+   */
+  sortOrder?: number;
 }
 
 export interface TimeBlock {

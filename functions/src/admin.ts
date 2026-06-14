@@ -1,5 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions';
+import { getAuth } from 'firebase-admin/auth';
 import {
   dateStringFromUtcMs,
   dayOfWeekFromUtcMs,
@@ -19,7 +20,7 @@ import {
   type UpdateWorkingHoursInput,
   type WorkingHoursDoc,
 } from '@salon/shared';
-import { collections } from './db';
+import { collections, db } from './db';
 import { requireCaller, requireRole } from './auth';
 
 interface ConflictReport {
@@ -270,6 +271,96 @@ export const setUserRole = onCall<SetUserRoleInput, Promise<{ ok: true }>>(async
   }
   await ref.update({ role });
   logger.info('User role updated', { uid, role, by: ctx.uid });
+  return { ok: true };
+});
+
+/**
+ * Self-service account deletion (required by Apple App Store guideline 5.1.1).
+ * Cancels future confirmed appointments (releasing slot claims), removes the
+ * user's notifications inbox, deletes the users/{uid} doc, and finally deletes
+ * the Firebase Auth record via the Admin SDK.
+ *
+ * Past appointments are anonymized (clientId nulled, status preserved) so
+ * the salon's bookkeeping remains consistent. The barber's view continues to
+ * show "Past client (deleted)" via the existing fallback rendering.
+ */
+export const deleteMyAccount = onCall<void, Promise<{ ok: true }>>(async (request) => {
+  const ctx = await requireCaller(request);
+  const uid = ctx.uid;
+  const nowMs = Date.now();
+
+  // 1. Cancel future confirmed appointments — release slot claims atomically.
+  const futureSnap = await collections
+    .appointments()
+    .where('clientId', '==', uid)
+    .where('startAt', '>=', nowMs)
+    .get();
+  for (const doc of futureSnap.docs) {
+    const data = doc.data();
+    if (data.status !== 'confirmed') continue;
+    try {
+      await db().runTransaction(async (tx) => {
+        const ref = collections.appointments().doc(doc.id);
+        const snap = await tx.get(ref);
+        const cur = snap.data();
+        if (!cur || cur.status !== 'confirmed') return;
+        const claimRefs = cur.slotClaimIds.map((id) => collections.slotClaims().doc(id));
+        const claimSnaps = await Promise.all(claimRefs.map((r) => tx.get(r)));
+        for (let i = 0; i < claimRefs.length; i++) {
+          const claim = claimSnaps[i]!.data();
+          if (claim && claim.appointmentId === doc.id) {
+            tx.delete(claimRefs[i]!);
+          }
+        }
+        tx.update(ref, { status: 'cancelledByClient', slotClaimIds: [], clientId: null });
+      });
+    } catch (err) {
+      logger.warn('Failed to cancel future appointment during account deletion', {
+        uid,
+        appointmentId: doc.id,
+        err: err instanceof Error ? err.message : 'unknown',
+      });
+    }
+  }
+
+  // 2. Anonymize past appointments (preserve bookkeeping).
+  const pastSnap = await collections
+    .appointments()
+    .where('clientId', '==', uid)
+    .where('startAt', '<', nowMs)
+    .get();
+  await Promise.all(
+    pastSnap.docs.map((d) =>
+      d.ref.update({ clientId: null }).catch(() => undefined),
+    ),
+  );
+
+  // 3. Delete the user's notifications inbox.
+  const notifSnap = await collections.notifications().where('recipientUid', '==', uid).get();
+  await Promise.all(notifSnap.docs.map((d) => d.ref.delete().catch(() => undefined)));
+
+  // 4. Remove blockedUsers entry if it exists.
+  await collections.blockedUsers().doc(uid).delete().catch(() => undefined);
+
+  // 5. Delete the users doc.
+  await collections.users().doc(uid).delete().catch(() => undefined);
+
+  // 6. Delete the Firebase Auth account last.
+  try {
+    await getAuth().deleteUser(uid);
+  } catch (err) {
+    // If deletion fails the user record is in a partial state; log loudly.
+    logger.error('Auth deletion failed during account deletion', {
+      uid,
+      err: err instanceof Error ? err.message : 'unknown',
+    });
+    throw new HttpsError(
+      'internal',
+      'Account data was removed but the sign-in record could not be deleted. Contact support.',
+    );
+  }
+
+  logger.info('Account deleted', { uid });
   return { ok: true };
 });
 

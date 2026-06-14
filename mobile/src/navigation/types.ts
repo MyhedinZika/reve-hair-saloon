@@ -39,6 +39,7 @@ export type BarberStackParamList = {
   Chat: { appointmentId: string };
   ManageHours: undefined;
   ManageBreaks: undefined;
+  CreateAppointment: { lockedBarberId?: string } | undefined;
 };
 
 type AdminDetailParams = {
@@ -61,7 +62,7 @@ export type AdminManageStackParamList = {
   ManageServices: undefined;
   ManageSettings: undefined;
   ManageBlocked: undefined;
-  CreateAppointment: undefined;
+  CreateAppointment: { lockedBarberId?: string } | undefined;
 };
 
 export type AdminInboxStackParamList = AdminDetailParams & {

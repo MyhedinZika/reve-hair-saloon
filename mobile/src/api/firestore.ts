@@ -24,6 +24,19 @@ import { firestore } from '../config/firebase';
 
 export const SETTINGS_DOC_ID = 'global';
 
+/**
+ * Sort services by sortOrder (lower first); services without sortOrder fall
+ * to the bottom, ordered by createdAt as a stable tiebreaker.
+ */
+export function compareServiceOrder(a: ServiceDoc, b: ServiceDoc): number {
+  const aHas = typeof a.sortOrder === 'number';
+  const bHas = typeof b.sortOrder === 'number';
+  if (aHas && bHas) return a.sortOrder! - b.sortOrder!;
+  if (aHas) return -1;
+  if (bHas) return 1;
+  return (a.createdAt ?? 0) - (b.createdAt ?? 0);
+}
+
 function typedDocs<T extends DocumentData>(
   collectionName: string,
   ...constraints: QueryConstraint[]
@@ -47,8 +60,10 @@ export const stores = {
   listBarbers: (): Promise<BarberDoc[]> =>
     typedDocs<BarberDoc>('barbers', where('active', '==', true)),
 
-  listServices: (): Promise<ServiceDoc[]> =>
-    typedDocs<ServiceDoc>('services', where('active', '==', true)),
+  listServices: async (): Promise<ServiceDoc[]> => {
+    const docs = await typedDocs<ServiceDoc>('services', where('active', '==', true));
+    return docs.sort(compareServiceOrder);
+  },
 
   watchClientAppointments: (
     clientId: string,

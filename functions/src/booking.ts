@@ -65,10 +65,22 @@ async function createAppointmentInternal(
 
   const isAdmin = ctx.role === 'admin';
 
+  // A barber can also book on behalf of others, but only against THEIR OWN
+  // barber profile — verified by matching input.barberId to the barbers doc
+  // whose userId === caller uid.
+  let isOwnBarber = false;
+  if (!isAdmin && ctx.role === 'barber') {
+    const barberSnap = await collections.barbers().doc(input.barberId).get();
+    if (barberSnap.exists && barberSnap.data()?.userId === ctx.uid) {
+      isOwnBarber = true;
+    }
+  }
+  const canBookForOthers = isAdmin || isOwnBarber;
+
   let clientId: string | null;
   let guestClient: AppointmentDoc['guestClient'];
 
-  if (isAdmin) {
+  if (canBookForOthers) {
     if (input.onBehalfOfClientId && input.guestClient) {
       throw new HttpsError(
         'invalid-argument',
@@ -87,7 +99,7 @@ async function createAppointmentInternal(
     }
   } else {
     if (input.onBehalfOfClientId || input.guestClient) {
-      throw new HttpsError('permission-denied', 'Only admins can book on behalf of others.');
+      throw new HttpsError('permission-denied', 'Only admins or the assigned barber can book on behalf of others.');
     }
     clientId = ctx.uid;
     guestClient = null;
@@ -102,7 +114,7 @@ async function createAppointmentInternal(
 
   const settings = await getSettings();
   const horizonMs = settings.bookingHorizonDays * DAY_MS;
-  if (!isAdmin) {
+  if (!canBookForOthers) {
     if (input.startAt < Date.now()) {
       throw new HttpsError('failed-precondition', 'Cannot book in the past.');
     }
@@ -128,7 +140,7 @@ async function createAppointmentInternal(
   const totalDuration = ensureValidDuration(input.serviceIds, durations);
   const endAt = input.startAt + totalDuration * 60 * 1000;
 
-  if (clientId && !isAdmin) {
+  if (clientId && !canBookForOthers) {
     const dateStr = dateStringFromUtcMs(input.startAt);
     const dayStart = startOfDayUtcMs(dateStr);
     const dayEnd = endOfDayUtcMs(dateStr);

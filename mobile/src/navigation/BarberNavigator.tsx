@@ -6,6 +6,7 @@ import { BarberChatScreen } from '../screens/barber/BarberChatScreen';
 import { BarberInboxScreen } from '../screens/barber/BarberInboxScreen';
 import { ManageHoursScreen } from '../screens/barber/ManageHoursScreen';
 import { ManageBreaksScreen } from '../screens/barber/ManageBreaksScreen';
+import { CreateAppointmentScreen } from '../screens/admin/CreateAppointmentScreen';
 import { ProfileScreen } from '../screens/shared/ProfileScreen';
 import { useAuth } from '../auth/AuthContext';
 import { useI18n } from '../i18n/I18nContext';
@@ -90,6 +91,7 @@ export function BarberNavigator(): React.JSX.Element {
       <Stack.Screen name="Chat" component={BarberChatScreen} />
       <Stack.Screen name="ManageHours" component={HoursScreen} />
       <Stack.Screen name="ManageBreaks" component={BreaksScreen} />
+      <Stack.Screen name="CreateAppointment" component={CreateAppointmentScreen} />
     </Stack.Navigator>
   );
 }

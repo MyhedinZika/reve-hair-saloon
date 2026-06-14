@@ -45,5 +45,6 @@ export const api = {
   markStatus: callable<MarkStatusInput, { ok: true }>('markStatus'),
   setUserRole: callable<SetUserRoleInput, { ok: true }>('setUserRole'),
   exportClientHistory: callable<void, { appointments: AppointmentDoc[] }>('exportClientHistory'),
+  deleteMyAccount: callable<void, { ok: true }>('deleteMyAccount'),
   todayDate: callable<void, { date: string }>('todayDate'),
 };

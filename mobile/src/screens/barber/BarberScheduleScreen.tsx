@@ -198,6 +198,15 @@ export function BarberScheduleScreen({ navigation }: Props): React.JSX.Element {
             ) : null}
             <Heading level={2}>{t('schedule')}</Heading>
           </View>
+          <Pressable
+            onPress={() =>
+              navigation.navigate('CreateAppointment', { lockedBarberId: barber.id })
+            }
+            style={styles.newButton}
+            hitSlop={6}
+          >
+            <Text style={styles.newButtonText}>+ New</Text>
+          </Pressable>
         </View>
         <ScrollView
           horizontal
@@ -303,6 +312,17 @@ const styles = StyleSheet.create({
     fontSize: font.size.sm,
     color: colors.muted,
     fontWeight: font.weight.medium,
+  },
+  newButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 9999,
+    backgroundColor: colors.ink,
+  },
+  newButtonText: {
+    color: colors.card,
+    fontSize: font.size.sm,
+    fontWeight: font.weight.semibold,
   },
   dayStrip: {
     gap: spacing.sm,

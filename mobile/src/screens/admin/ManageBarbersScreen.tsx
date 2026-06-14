@@ -26,6 +26,7 @@ import {
 } from '../../theme/components';
 import { colors, font, spacing } from '../../theme/tokens';
 import { firestore } from '../../config/firebase';
+import { compareServiceOrder } from '../../api/firestore';
 import { api } from '../../api/functions';
 import { BarberAvatar } from '../../components/BarberAvatar';
 import type { AdminManageStackParamList } from '../../navigation/types';
@@ -51,7 +52,7 @@ export function ManageBarbersScreen(): React.JSX.Element {
       setBarbers(snap.docs.map((d) => d.data() as BarberDoc));
     });
     const unsubS = onSnapshot(collection(firestore, 'services'), (snap) => {
-      setServices(snap.docs.map((d) => d.data() as ServiceDoc));
+      setServices(snap.docs.map((d) => d.data() as ServiceDoc).sort(compareServiceOrder));
     });
     return () => {
       unsubB();

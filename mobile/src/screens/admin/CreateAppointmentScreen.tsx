@@ -26,15 +26,18 @@ import { colors, font, radius, spacing } from '../../theme/tokens';
 import { api } from '../../api/functions';
 import { stores } from '../../api/firestore';
 import { formatDuration, formatPrice, formatTimeOfDay } from '../../util/format';
-import type { AdminManageStackParamList } from '../../navigation/types';
-
-type Props = NativeStackScreenProps<AdminManageStackParamList, 'CreateAppointment'>;
+type CreateAppointmentRouteParams = { lockedBarberId?: string } | undefined;
+type Props = NativeStackScreenProps<
+  { CreateAppointment: CreateAppointmentRouteParams },
+  'CreateAppointment'
+>;
 type Mode = 'registered' | 'guest';
 
-export function CreateAppointmentScreen({ navigation }: Props): React.JSX.Element {
+export function CreateAppointmentScreen({ navigation, route }: Props): React.JSX.Element {
+  const lockedBarberId = route.params?.lockedBarberId ?? null;
   const [barbers, setBarbers] = useState<BarberDoc[]>([]);
   const [services, setServices] = useState<ServiceDoc[]>([]);
-  const [barberId, setBarberId] = useState<string | null>(null);
+  const [barberId, setBarberId] = useState<string | null>(lockedBarberId);
   const [selectedServices, setSelectedServices] = useState<Set<string>>(new Set());
   const [date, setDate] = useState<string>(todayDateString());
   const [slots, setSlots] = useState<number[] | null>(null);
@@ -165,18 +168,22 @@ export function CreateAppointmentScreen({ navigation }: Props): React.JSX.Elemen
         keyboardDismissMode="interactive"
         automaticallyAdjustKeyboardInsets
       >
-        <MutedText>Barber</MutedText>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
-          {barbers.map((b) => (
-            <Pill
-              key={b.id}
-              label={b.displayName}
-              selected={b.id === barberId}
-              selectedTone="accent"
-              onPress={() => setBarberId(b.id)}
-            />
-          ))}
-        </View>
+        {lockedBarberId ? null : (
+          <>
+            <MutedText>Barber</MutedText>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+              {barbers.map((b) => (
+                <Pill
+                  key={b.id}
+                  label={b.displayName}
+                  selected={b.id === barberId}
+                  selectedTone="accent"
+                  onPress={() => setBarberId(b.id)}
+                />
+              ))}
+            </View>
+          </>
+        )}
 
         <MutedText>Services</MutedText>
         <View style={{ gap: spacing.sm }}>

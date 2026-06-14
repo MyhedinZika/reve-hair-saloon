@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { collection, doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { SLOT_MINUTES, type ServiceDoc } from '@salon/shared';
 import {
@@ -11,8 +11,9 @@ import {
   MutedText,
   Screen,
 } from '../../theme/components';
-import { font, spacing } from '../../theme/tokens';
+import { colors, font, radius, spacing } from '../../theme/tokens';
 import { firestore } from '../../config/firebase';
+import { compareServiceOrder } from '../../api/firestore';
 import { formatDuration, formatPrice } from '../../util/format';
 
 export function ManageServicesScreen(): React.JSX.Element {
@@ -29,6 +30,8 @@ export function ManageServicesScreen(): React.JSX.Element {
     return () => unsub();
   }, []);
 
+  const sorted = useMemo(() => [...services].sort(compareServiceOrder), [services]);
+
   const create = async (): Promise<void> => {
     const priceCents = Math.round(parseFloat(price) * 100);
     const minutes = parseInt(duration, 10);
@@ -43,6 +46,11 @@ export function ManageServicesScreen(): React.JSX.Element {
     setBusy(true);
     try {
       const ref = doc(collection(firestore, 'services'));
+      // Append to the end of the existing order.
+      const maxOrder = sorted.reduce(
+        (max, s) => (typeof s.sortOrder === 'number' && s.sortOrder > max ? s.sortOrder : max),
+        -1,
+      );
       const newDoc: ServiceDoc = {
         id: ref.id,
         name: name.trim(),
@@ -50,6 +58,7 @@ export function ManageServicesScreen(): React.JSX.Element {
         durationMinutes: minutes,
         active: true,
         createdAt: Date.now(),
+        sortOrder: maxOrder + 1,
       };
       await setDoc(ref, newDoc);
       setName('');
@@ -70,6 +79,39 @@ export function ManageServicesScreen(): React.JSX.Element {
     }
   };
 
+  const swapOrder = async (idx: number, direction: -1 | 1): Promise<void> => {
+    const other = idx + direction;
+    if (other < 0 || other >= sorted.length) return;
+    const a = sorted[idx]!;
+    const b = sorted[other]!;
+
+    // Compute new order values: assign sequential indices to the displayed list,
+    // swap positions of a and b. Write only the two changed docs.
+    const newOrder = sorted.map((s, i) => ({ s, order: i }));
+    newOrder[idx] = { s: a, order: other };
+    newOrder[other] = { s: b, order: idx };
+
+    try {
+      await Promise.all([
+        updateDoc(doc(firestore, 'services', a.id), { sortOrder: other }),
+        updateDoc(doc(firestore, 'services', b.id), { sortOrder: idx }),
+      ]);
+      // Ensure docs without sortOrder get one on first swap so the order is stable.
+      const normalizationWrites: Promise<void>[] = [];
+      sorted.forEach((s, i) => {
+        if (s.id === a.id || s.id === b.id) return;
+        if (typeof s.sortOrder !== 'number') {
+          normalizationWrites.push(
+            updateDoc(doc(firestore, 'services', s.id), { sortOrder: i }),
+          );
+        }
+      });
+      if (normalizationWrites.length > 0) await Promise.all(normalizationWrites);
+    } catch (err) {
+      Alert.alert('Could not reorder', err instanceof Error ? err.message : 'Unknown error');
+    }
+  };
+
   return (
     <Screen>
       <ScrollView
@@ -78,10 +120,44 @@ export function ManageServicesScreen(): React.JSX.Element {
         keyboardDismissMode="interactive"
         automaticallyAdjustKeyboardInsets
       >
-        {services.map((s) => (
+        {sorted.length > 1 ? (
+          <MutedText style={{ fontSize: font.size.xs }}>
+            Drag the order — use the ▲ / ▼ buttons to reorder how services appear to clients.
+          </MutedText>
+        ) : null}
+
+        {sorted.map((s, idx) => (
           <Card key={s.id}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+              <View style={styles.reorderCol}>
+                <Pressable
+                  onPress={() => void swapOrder(idx, -1)}
+                  disabled={idx === 0}
+                  style={[styles.reorderBtn, idx === 0 ? styles.reorderBtnDisabled : null]}
+                  hitSlop={4}
+                >
+                  <Text style={[styles.reorderText, idx === 0 ? styles.reorderTextDisabled : null]}>▲</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => void swapOrder(idx, 1)}
+                  disabled={idx === sorted.length - 1}
+                  style={[
+                    styles.reorderBtn,
+                    idx === sorted.length - 1 ? styles.reorderBtnDisabled : null,
+                  ]}
+                  hitSlop={4}
+                >
+                  <Text
+                    style={[
+                      styles.reorderText,
+                      idx === sorted.length - 1 ? styles.reorderTextDisabled : null,
+                    ]}
+                  >
+                    ▼
+                  </Text>
+                </Pressable>
+              </View>
+              <View style={{ flex: 1 }}>
                 <BodyText style={{ fontWeight: font.weight.semibold, fontSize: font.size.lg }}>
                   {s.name}
                 </BodyText>
@@ -91,7 +167,12 @@ export function ManageServicesScreen(): React.JSX.Element {
                 </MutedText>
               </View>
               <Pressable onPress={() => void toggleActive(s)}>
-                <BodyText style={{ color: s.active ? '#B91C1C' : '#15803D', fontWeight: font.weight.semibold }}>
+                <BodyText
+                  style={{
+                    color: s.active ? colors.danger : colors.success,
+                    fontWeight: font.weight.semibold,
+                  }}
+                >
                   {s.active ? 'Deactivate' : 'Activate'}
                 </BodyText>
               </Pressable>
@@ -123,3 +204,31 @@ export function ManageServicesScreen(): React.JSX.Element {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  reorderCol: {
+    gap: 6,
+  },
+  reorderBtn: {
+    width: 28,
+    height: 24,
+    borderRadius: radius.sm,
+    backgroundColor: colors.bgAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reorderBtnDisabled: {
+    opacity: 0.4,
+  },
+  reorderText: {
+    color: colors.ink,
+    fontSize: 12,
+    lineHeight: 14,
+    fontWeight: font.weight.semibold,
+  },
+  reorderTextDisabled: {
+    color: colors.muted,
+  },
+});

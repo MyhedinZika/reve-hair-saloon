@@ -20,6 +20,7 @@ export {
   markStatus,
   setUserRole,
   exportClientHistory,
+  deleteMyAccount,
 } from './admin';
 
 export { sendReminders, retentionCleanup } from './scheduled';
