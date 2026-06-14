@@ -13,6 +13,7 @@ import {
   type ViewProps,
   type ViewStyle,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, font, radius, spacing } from './tokens';
 
 interface ScreenProps extends ViewProps {
@@ -20,12 +21,14 @@ interface ScreenProps extends ViewProps {
 }
 
 export function Screen({ style, padded = true, ...rest }: ScreenProps): React.JSX.Element {
+  const insets = useSafeAreaInsets();
   return (
     <View
       {...rest}
       style={[
         styles.screen,
-        padded ? { paddingHorizontal: spacing.xl, paddingTop: spacing.lg } : null,
+        { paddingTop: insets.top + (padded ? spacing.lg : 0) },
+        padded ? { paddingHorizontal: spacing.xl } : null,
         style,
       ]}
     />

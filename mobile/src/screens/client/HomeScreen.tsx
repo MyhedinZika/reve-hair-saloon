@@ -22,6 +22,8 @@ import { useI18n } from '../../i18n/I18nContext';
 import { formatDateLong, formatTimeOfDay } from '../../util/format';
 import type { ClientStackParamList, ClientTabParamList } from '../../navigation/types';
 
+const logoMark = require('../../../assets/mark.png');
+
 type Props = CompositeScreenProps<
   BottomTabScreenProps<ClientTabParamList, 'Home'>,
   NativeStackScreenProps<ClientStackParamList>
@@ -82,9 +84,7 @@ export function HomeScreen({ navigation }: Props): React.JSX.Element {
   return (
     <Screen padded={false}>
       <View style={styles.header}>
-        <View style={styles.brandMark}>
-          <Text style={styles.brandMarkText}>r</Text>
-        </View>
+        <Image source={logoMark} style={styles.brandMark} resizeMode="cover" />
         <View style={{ flex: 1 }}>
           <Text style={styles.brandText}>rêve</Text>
           <Text style={styles.brandSubtext}>{t('hairSalon')}</Text>

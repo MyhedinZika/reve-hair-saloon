@@ -1,10 +1,12 @@
-import { Text, View } from 'react-native';
+import { Image, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LanguageToggle } from '../../components/LanguageToggle';
 import { Button, Screen } from '../../theme/components';
 import { colors, font, radius, spacing } from '../../theme/tokens';
 import { useI18n } from '../../i18n/I18nContext';
 import type { AuthStackParamList } from '../../navigation/types';
+
+const logo = require('../../../assets/logo.jpg');
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Welcome'>;
 
@@ -18,45 +20,16 @@ export function WelcomeScreen({ navigation }: Props): React.JSX.Element {
           <LanguageToggle tone="dark" />
         </View>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <View
+          <Image
+            source={logo}
             style={{
-              width: 78,
-              height: 78,
-              borderRadius: 22,
-              backgroundColor: 'rgba(239, 140, 19, 0.14)',
-              borderWidth: 1,
-              borderColor: 'rgba(239, 140, 19, 0.30)',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: spacing.xxl,
+              width: 220,
+              height: 220,
+              borderRadius: 24,
+              marginBottom: spacing.lg,
             }}
-          >
-            <Text style={{ color: colors.accent, fontSize: 38, fontWeight: font.weight.semibold }}>
-              ✂
-            </Text>
-          </View>
-          <Text
-            style={{
-              fontSize: 54,
-              fontWeight: font.weight.semibold,
-              color: colors.card,
-              letterSpacing: 0,
-              lineHeight: 58,
-            }}
-          >
-            rêve
-          </Text>
-          <Text
-            style={{
-              fontSize: font.size.sm,
-              fontWeight: font.weight.semibold,
-              color: colors.accent,
-              letterSpacing: 3.8,
-              marginTop: spacing.lg,
-            }}
-          >
-            {t('hairSalon')}
-          </Text>
+            resizeMode="cover"
+          />
           <Text
             style={{
               marginTop: spacing.xxl,

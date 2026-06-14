@@ -1,21 +1,32 @@
 {
   "expo": {
-    "name": "Salon",
+    "name": "Rêve Hair Salon",
     "slug": "salon",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1e1e36"
+    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.salon.app"
     },
     "android": {
       "package": "com.salon.app",
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#1e1e36"
+      }
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./assets/icon.png"
     },
     "plugins": [
       "expo-notifications",

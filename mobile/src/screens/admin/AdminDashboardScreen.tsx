@@ -195,11 +195,18 @@ interface StatCardProps {
 function StatCard({ label, suffix, value }: StatCardProps): React.JSX.Element {
   return (
     <Card style={styles.statCard}>
-      <BodyText style={{ fontSize: font.size.xxl, fontWeight: font.weight.semibold }}>
+      <BodyText
+        style={{
+          fontSize: font.size.xxl,
+          lineHeight: font.size.xxl * 1.3,
+          fontWeight: font.weight.semibold,
+          textAlign: 'center',
+        }}
+      >
         {value}
       </BodyText>
-      <MutedText>{label}</MutedText>
-      <MutedText style={{ fontSize: font.size.xs }}>{suffix}</MutedText>
+      <MutedText style={{ marginTop: spacing.xs, textAlign: 'center' }}>{label}</MutedText>
+      <MutedText style={{ fontSize: font.size.xs, textAlign: 'center' }}>{suffix}</MutedText>
     </Card>
   );
 }
