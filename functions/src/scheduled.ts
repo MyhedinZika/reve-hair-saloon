@@ -3,10 +3,11 @@ import { logger } from 'firebase-functions';
 import { REMINDER_MINUTES_BEFORE } from '@salon/shared';
 import { collections } from './db';
 import { sendNotification } from './notifications';
+import { cleanupScheduleOptions, reminderScheduleOptions } from './region';
 
 const MIN_MS = 60 * 1000;
 
-export const sendReminders = onSchedule('every 5 minutes', async () => {
+export const sendReminders = onSchedule(reminderScheduleOptions, async () => {
   const now = Date.now();
   const windowStart = now + (REMINDER_MINUTES_BEFORE - 5) * MIN_MS;
   const windowEnd = now + (REMINDER_MINUTES_BEFORE + 5) * MIN_MS;
@@ -38,7 +39,7 @@ export const sendReminders = onSchedule('every 5 minutes', async () => {
   logger.info('Reminders processed', { candidates: snap.size, sent });
 });
 
-export const retentionCleanup = onSchedule('every day 03:00', async () => {
+export const retentionCleanup = onSchedule(cleanupScheduleOptions, async () => {
   const now = Date.now();
 
   const expired = await collections.appointments().where('deleteAt', '<=', now).limit(500).get();

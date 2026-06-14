@@ -44,7 +44,12 @@ export function AuthProvider({ children }: AuthProviderProps): React.JSX.Element
     const ref = doc(firestore, 'users', uid);
     const unsub = onSnapshot(
       ref,
+      { includeMetadataChanges: true },
       (snap) => {
+        if (snap.exists() && snap.metadata.hasPendingWrites) {
+          setState((prev) => ({ ...prev, loading: true }));
+          return;
+        }
         const data = snap.exists() ? (snap.data() as UserDoc) : null;
         setState((prev) => ({ ...prev, profile: data, loading: false }));
       },

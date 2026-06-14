@@ -22,6 +22,7 @@ import {
 } from '@salon/shared';
 import { collections, db } from './db';
 import { requireCaller, requireRole } from './auth';
+import { callableOptions } from './region';
 
 interface ConflictReport {
   appointmentId: string;
@@ -54,7 +55,7 @@ function blocksContain(
 export const updateWorkingHours = onCall<
   UpdateWorkingHoursInput,
   Promise<{ ok: true; conflicts: ConflictReport[] }>
->(async (request) => {
+>(callableOptions, async (request) => {
   await requireRole(request, ['admin']);
   const { barberId, dayOfWeek, blocks } = request.data;
   if (!barberId || !dayOfWeek || !Array.isArray(blocks)) {
@@ -103,7 +104,7 @@ export const updateWorkingHours = onCall<
 export const updateBreaks = onCall<
   UpdateBreaksInput,
   Promise<{ ok: true; conflicts: ConflictReport[] }>
->(async (request) => {
+>(callableOptions, async (request) => {
   await requireRole(request, ['admin', 'barber']);
   const { barberId, date, blocks } = request.data;
   if (!barberId || !date || !Array.isArray(blocks)) {
@@ -149,7 +150,7 @@ export const updateBreaks = onCall<
 export const updateRecurringBreaks = onCall<
   UpdateRecurringBreaksInput,
   Promise<{ ok: true; conflicts: ConflictReport[] }>
->(async (request) => {
+>(callableOptions, async (request) => {
   await requireRole(request, ['admin', 'barber']);
   const { barberId, dayOfWeek, blocks } = request.data;
   if (!barberId || !dayOfWeek || !Array.isArray(blocks)) {
@@ -200,7 +201,7 @@ export const updateRecurringBreaks = onCall<
   return { ok: true, conflicts };
 });
 
-export const blockUser = onCall<BlockUserInput, Promise<{ ok: true }>>(async (request) => {
+export const blockUser = onCall<BlockUserInput, Promise<{ ok: true }>>(callableOptions, async (request) => {
   const ctx = await requireRole(request, ['admin']);
   const { uid, reason } = request.data;
   if (!uid) throw new HttpsError('invalid-argument', 'uid is required.');
@@ -218,7 +219,7 @@ export const blockUser = onCall<BlockUserInput, Promise<{ ok: true }>>(async (re
   return { ok: true };
 });
 
-export const unblockUser = onCall<{ uid: string }, Promise<{ ok: true }>>(async (request) => {
+export const unblockUser = onCall<{ uid: string }, Promise<{ ok: true }>>(callableOptions, async (request) => {
   await requireRole(request, ['admin']);
   const { uid } = request.data;
   if (!uid) throw new HttpsError('invalid-argument', 'uid is required.');
@@ -226,7 +227,7 @@ export const unblockUser = onCall<{ uid: string }, Promise<{ ok: true }>>(async 
   return { ok: true };
 });
 
-export const markStatus = onCall<MarkStatusInput, Promise<{ ok: true }>>(async (request) => {
+export const markStatus = onCall<MarkStatusInput, Promise<{ ok: true }>>(callableOptions, async (request) => {
   const ctx = await requireRole(request, ['admin', 'barber']);
   const { appointmentId, status } = request.data;
   if (!appointmentId || (status !== 'completed' && status !== 'noShow')) {
@@ -255,7 +256,7 @@ export const markStatus = onCall<MarkStatusInput, Promise<{ ok: true }>>(async (
 
 const ALLOWED_ROLES: Role[] = ['admin', 'barber', 'client'];
 
-export const setUserRole = onCall<SetUserRoleInput, Promise<{ ok: true }>>(async (request) => {
+export const setUserRole = onCall<SetUserRoleInput, Promise<{ ok: true }>>(callableOptions, async (request) => {
   const ctx = await requireRole(request, ['admin']);
   const { uid, role } = request.data;
   if (!uid || !ALLOWED_ROLES.includes(role)) {
@@ -284,7 +285,7 @@ export const setUserRole = onCall<SetUserRoleInput, Promise<{ ok: true }>>(async
  * the salon's bookkeeping remains consistent. The barber's view continues to
  * show "Past client (deleted)" via the existing fallback rendering.
  */
-export const deleteMyAccount = onCall<void, Promise<{ ok: true }>>(async (request) => {
+export const deleteMyAccount = onCall<void, Promise<{ ok: true }>>(callableOptions, async (request) => {
   const ctx = await requireCaller(request);
   const uid = ctx.uid;
   const nowMs = Date.now();
@@ -365,6 +366,7 @@ export const deleteMyAccount = onCall<void, Promise<{ ok: true }>>(async (reques
 });
 
 export const exportClientHistory = onCall<void, Promise<{ appointments: AppointmentDoc[] }>>(
+  callableOptions,
   async (request) => {
     const ctx = await requireCaller(request);
     const snap = await collections

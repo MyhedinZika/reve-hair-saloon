@@ -5,6 +5,8 @@
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
+    "start:prod": "EXPO_PUBLIC_USE_FIREBASE_EMULATOR=false expo start",
+    "start:emulator": "EXPO_PUBLIC_USE_FIREBASE_EMULATOR=true expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",

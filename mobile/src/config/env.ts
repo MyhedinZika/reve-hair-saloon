@@ -19,6 +19,23 @@ export const firebaseConfig: FirebaseConfig = {
 };
 
 export const googleWebClientId = '1099495106269-5qscn0d953u8cbqesbv6d003omh23rkm.apps.googleusercontent.com';
+export const firebaseFunctionsRegion = 'europe-west1';
 
-export const useEmulator = true;
-export const emulatorHost = '100.121.1.121';
+declare const __DEV__: boolean | undefined;
+declare const process:
+  | {
+      env?: {
+        EXPO_PUBLIC_USE_FIREBASE_EMULATOR?: string;
+        EXPO_PUBLIC_FIREBASE_EMULATOR_HOST?: string;
+      };
+    }
+  | undefined;
+
+const env = typeof process === 'undefined' ? undefined : process.env;
+const useEmulatorOverride = env?.EXPO_PUBLIC_USE_FIREBASE_EMULATOR;
+
+export const useEmulator =
+  useEmulatorOverride === undefined
+    ? typeof __DEV__ === 'boolean' ? __DEV__ : false
+    : useEmulatorOverride === 'true';
+export const emulatorHost = env?.EXPO_PUBLIC_FIREBASE_EMULATOR_HOST ?? '100.121.1.121';

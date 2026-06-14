@@ -30,6 +30,7 @@ import { requireCaller, type CallerContext } from './auth';
 import { loadAvailability, loadDaySchedule } from './availability';
 import { getSettings } from './settings';
 import { sendNotification } from './notifications';
+import { callableOptions } from './region';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -280,6 +281,7 @@ async function createAppointmentInternal(
 }
 
 export const getAvailableSlots = onCall<GetAvailableSlotsInput, Promise<GetAvailableSlotsOutput>>(
+  callableOptions,
   async (request) => {
     await requireCaller(request);
     const { barberId, date, serviceDurationMinutes } = request.data;
@@ -292,6 +294,7 @@ export const getAvailableSlots = onCall<GetAvailableSlotsInput, Promise<GetAvail
 );
 
 export const nextAvailable = onCall<NextAvailableInput, Promise<NextAvailableOutput>>(
+  callableOptions,
   async (request) => {
     await requireCaller(request);
     const { barberId, fromDate, serviceDurationMinutes } = request.data;
@@ -313,6 +316,7 @@ export const nextAvailable = onCall<NextAvailableInput, Promise<NextAvailableOut
 );
 
 export const createAppointment = onCall<CreateAppointmentInput, Promise<{ appointmentId: string }>>(
+  callableOptions,
   async (request) => {
     const ctx = await requireCaller(request);
     const result = await createAppointmentInternal(ctx, request.data);
@@ -368,6 +372,7 @@ async function cancelInternal(
 }
 
 export const cancelAppointment = onCall<CancelAppointmentInput, Promise<{ ok: true }>>(
+  callableOptions,
   async (request) => {
     const ctx = await requireCaller(request);
     const { appointmentId } = request.data;
@@ -418,7 +423,7 @@ export const cancelAppointment = onCall<CancelAppointmentInput, Promise<{ ok: tr
 export const rescheduleAppointment = onCall<
   RescheduleAppointmentInput,
   Promise<{ appointmentId: string }>
->(async (request) => {
+>(callableOptions, async (request) => {
   const ctx = await requireCaller(request);
   const { appointmentId, newStartAt } = request.data;
   if (!appointmentId || !Number.isFinite(newStartAt)) {
@@ -499,7 +504,7 @@ export const rescheduleAppointment = onCall<
   }
 });
 
-export const todayDate = onCall<void, Promise<{ date: string }>>(async (request) => {
+export const todayDate = onCall<void, Promise<{ date: string }>>(callableOptions, async (request) => {
   await requireCaller(request);
   return { date: todayDateString() };
 });

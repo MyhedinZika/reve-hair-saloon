@@ -2,6 +2,7 @@ node_modules/
 .expo/
 dist/
 lib/
+functions/shared/
 *.log
 .DS_Store
 .env

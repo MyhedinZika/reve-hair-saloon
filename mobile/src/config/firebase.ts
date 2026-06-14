@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 import { getFunctions, connectFunctionsEmulator, type Functions } from 'firebase/functions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { emulatorHost, firebaseConfig, useEmulator } from './env';
+import { emulatorHost, firebaseConfig, firebaseFunctionsRegion, useEmulator } from './env';
 
 const app = getApps().length > 0 ? getApps()[0]! : initializeApp(firebaseConfig);
 
@@ -30,7 +30,7 @@ const firestore: Firestore = initializeFirestore(app, {
   experimentalForceLongPolling: true,
 });
 
-const functions: Functions = getFunctions(app);
+const functions: Functions = getFunctions(app, firebaseFunctionsRegion);
 
 if (useEmulator) {
   connectAuthEmulator(auth, `http://${emulatorHost}:9099`);

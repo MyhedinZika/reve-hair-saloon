@@ -12,10 +12,16 @@ export function useMyBarber(uid: string | null): BarberDoc | null {
       return;
     }
     const q = query(collection(firestore, 'barbers'), where('userId', '==', uid));
-    const unsub = onSnapshot(q, (snap) => {
-      const first = snap.docs[0];
-      setBarber(first ? (first.data() as BarberDoc) : null);
-    });
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const first = snap.docs[0];
+        setBarber(first ? (first.data() as BarberDoc) : null);
+      },
+      () => {
+        setBarber(null);
+      },
+    );
     return () => unsub();
   }, [uid]);
 

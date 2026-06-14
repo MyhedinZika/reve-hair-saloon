@@ -51,9 +51,15 @@ function watchTypedDocs<T extends DocumentData>(
   ...constraints: QueryConstraint[]
 ): Unsubscribe {
   const q = query(collection(firestore, collectionName), ...constraints);
-  return onSnapshot(q, (snap) => {
-    callback(snap.docs.map((d) => d.data() as T));
-  });
+  return onSnapshot(
+    q,
+    (snap) => {
+      callback(snap.docs.map((d) => d.data() as T));
+    },
+    () => {
+      callback([]);
+    },
+  );
 }
 
 export const stores = {
@@ -102,9 +108,15 @@ export const stores = {
     callback: (doc: AppointmentDoc | null) => void,
   ): Unsubscribe => {
     const ref = doc(firestore, 'appointments', id);
-    return onSnapshot(ref, (snap) => {
-      callback(snap.exists() ? (snap.data() as AppointmentDoc) : null);
-    });
+    return onSnapshot(
+      ref,
+      (snap) => {
+        callback(snap.exists() ? (snap.data() as AppointmentDoc) : null);
+      },
+      () => {
+        callback(null);
+      },
+    );
   },
 
   watchMessages: (
