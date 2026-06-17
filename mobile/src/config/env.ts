@@ -36,8 +36,12 @@ const env = typeof process === 'undefined' ? undefined : process.env;
 export const googleWebClientId =
   env?.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ??
   '1099495106269-5qscn0d953u8cbqesbv6d003omh23rkm.apps.googleusercontent.com';
-export const googleIosClientId = env?.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
-export const googleAndroidClientId = env?.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
+export const googleIosClientId =
+  env?.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ??
+  '1099495106269-bu9m7j471hnk47cteq2bsrrt61f444bq.apps.googleusercontent.com';
+export const googleAndroidClientId =
+  env?.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ??
+  '1099495106269-tni008t35k7ltrgb8ragfvs49p604beu.apps.googleusercontent.com';
 export const firebaseFunctionsRegion = 'europe-west1';
 
 const useEmulatorOverride = env?.EXPO_PUBLIC_USE_FIREBASE_EMULATOR;

@@ -15,7 +15,6 @@ export function useGoogleSignIn(): GoogleSignInState {
     webClientId: googleWebClientId,
     ...(googleIosClientId ? { iosClientId: googleIosClientId } : {}),
     ...(googleAndroidClientId ? { androidClientId: googleAndroidClientId } : {}),
-    clientId: googleWebClientId,
   });
 
   const ready = !!request;
