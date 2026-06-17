@@ -15,6 +15,12 @@
     "typecheck:functions": "npm run typecheck --workspace functions",
     "pretypecheck:mobile": "npm run build:shared",
     "typecheck:mobile": "npm run typecheck --workspace mobile",
+    "eas-build-post-install": "npm run build:shared",
     "build:shared": "npm run build --workspace shared"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.0",
+    "react": "^19.1.0",
+    "react-native": "^0.81.5"
   }
 }

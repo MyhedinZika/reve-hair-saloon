@@ -2,6 +2,7 @@
   "expo": {
     "name": "Rêve Hair Salon",
     "slug": "salon",
+    "scheme": "com.revehairsalonks.app",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -14,7 +15,10 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.revehairsalonks.app"
+      "bundleIdentifier": "com.revehairsalonks.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.revehairsalonks.app",
@@ -31,6 +35,12 @@
     "plugins": [
       "expo-notifications",
       "expo-asset"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "fefab8e3-a707-41b9-83a4-209c407e2acd"
+      }
+    },
+    "owner": "myhedin"
   }
 }

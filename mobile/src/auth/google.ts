@@ -1,6 +1,6 @@
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
-import { googleWebClientId } from '../config/env';
+import { googleAndroidClientId, googleIosClientId, googleWebClientId } from '../config/env';
 import { signInWithGoogleIdToken } from './api';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -12,6 +12,9 @@ interface GoogleSignInState {
 
 export function useGoogleSignIn(): GoogleSignInState {
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    webClientId: googleWebClientId,
+    ...(googleIosClientId ? { iosClientId: googleIosClientId } : {}),
+    ...(googleAndroidClientId ? { androidClientId: googleAndroidClientId } : {}),
     clientId: googleWebClientId,
   });
 

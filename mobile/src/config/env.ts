@@ -18,13 +18,13 @@ export const firebaseConfig: FirebaseConfig = {
   measurementId: 'G-DCCQMJYGLK',
 };
 
-export const googleWebClientId = '1099495106269-5qscn0d953u8cbqesbv6d003omh23rkm.apps.googleusercontent.com';
-export const firebaseFunctionsRegion = 'europe-west1';
-
 declare const __DEV__: boolean | undefined;
 declare const process:
   | {
       env?: {
+        EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?: string;
+        EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?: string;
+        EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID?: string;
         EXPO_PUBLIC_USE_FIREBASE_EMULATOR?: string;
         EXPO_PUBLIC_FIREBASE_EMULATOR_HOST?: string;
       };
@@ -32,6 +32,14 @@ declare const process:
   | undefined;
 
 const env = typeof process === 'undefined' ? undefined : process.env;
+
+export const googleWebClientId =
+  env?.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ??
+  '1099495106269-5qscn0d953u8cbqesbv6d003omh23rkm.apps.googleusercontent.com';
+export const googleIosClientId = env?.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+export const googleAndroidClientId = env?.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
+export const firebaseFunctionsRegion = 'europe-west1';
+
 const useEmulatorOverride = env?.EXPO_PUBLIC_USE_FIREBASE_EMULATOR;
 
 export const useEmulator =
