@@ -1,5 +1,6 @@
 import {
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithCredential,
@@ -10,6 +11,10 @@ import { auth, firestore } from '../config/firebase';
 
 export async function signInWithEmail(email: string, password: string): Promise<void> {
   await signInWithEmailAndPassword(auth, email, password);
+}
+
+export async function sendPasswordReset(email: string): Promise<void> {
+  await sendPasswordResetEmail(auth, email);
 }
 
 export async function signUpWithEmail(

@@ -12,6 +12,7 @@ import {
 import { LanguageToggle } from '../../components/LanguageToggle';
 import { colors, font, spacing } from '../../theme/tokens';
 import { signUpWithEmail } from '../../auth/api';
+import { getAuthErrorMessage } from '../../auth/errors';
 import { useI18n } from '../../i18n/I18nContext';
 import type { AuthStackParamList } from '../../navigation/types';
 
@@ -40,8 +41,7 @@ export function SignUpScreen({ navigation }: Props): React.JSX.Element {
     try {
       await signUpWithEmail(email.trim(), password, name.trim(), phone.trim() || null);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : t('signUpError');
-      setError(msg);
+      setError(getAuthErrorMessage(err, t, 'signUpError'));
     } finally {
       setLoading(false);
     }

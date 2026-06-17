@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   Button,
@@ -11,7 +11,8 @@ import {
 } from '../../theme/components';
 import { LanguageToggle } from '../../components/LanguageToggle';
 import { colors, font, spacing } from '../../theme/tokens';
-import { signInWithEmail } from '../../auth/api';
+import { sendPasswordReset, signInWithEmail } from '../../auth/api';
+import { getAuthErrorMessage } from '../../auth/errors';
 import { useGoogleSignIn } from '../../auth/google';
 import { useI18n } from '../../i18n/I18nContext';
 import type { AuthStackParamList } from '../../navigation/types';
@@ -23,17 +24,18 @@ export function SignInScreen({ navigation }: Props): React.JSX.Element {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const google = useGoogleSignIn();
 
   const handleSignIn = async (): Promise<void> => {
     setError(null);
+    setNotice(null);
     setLoading(true);
     try {
       await signInWithEmail(email.trim(), password);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : t('loginError');
-      setError(msg);
+      setError(getAuthErrorMessage(err, t, 'loginError'));
     } finally {
       setLoading(false);
     }
@@ -41,12 +43,31 @@ export function SignInScreen({ navigation }: Props): React.JSX.Element {
 
   const handleGoogle = async (): Promise<void> => {
     setError(null);
+    setNotice(null);
     setLoading(true);
     try {
       await google.prompt();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : t('loginError');
-      setError(msg);
+      setError(getAuthErrorMessage(err, t, 'loginError'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (): Promise<void> => {
+    setError(null);
+    setNotice(null);
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setError(t('passwordResetEmailRequired'));
+      return;
+    }
+    setLoading(true);
+    try {
+      await sendPasswordReset(trimmedEmail);
+      setNotice(t('passwordResetSent'));
+    } catch (err) {
+      setError(getAuthErrorMessage(err, t, 'loginError'));
     } finally {
       setLoading(false);
     }
@@ -91,18 +112,41 @@ export function SignInScreen({ navigation }: Props): React.JSX.Element {
             placeholder={t('password')}
           />
 
-          <Text
+          <Pressable
+            accessibilityRole="button"
+            disabled={loading}
+            onPress={handleForgotPassword}
             style={{
-              color: colors.accent,
-              fontSize: font.size.md,
-              fontWeight: font.weight.medium,
-              textAlign: 'right',
               marginTop: -spacing.xs,
               marginBottom: spacing.lg,
+              alignSelf: 'flex-end',
             }}
           >
-            {t('forgotPassword')}
-          </Text>
+            <Text
+              style={{
+                color: loading ? colors.muted : colors.accent,
+                fontSize: font.size.md,
+                fontWeight: font.weight.medium,
+                textAlign: 'right',
+              }}
+            >
+              {t('forgotPassword')}
+            </Text>
+          </Pressable>
+
+          {notice ? (
+            <Text
+              style={{
+                color: colors.success,
+                fontSize: font.size.sm,
+                lineHeight: 18,
+                marginTop: -spacing.sm,
+                marginBottom: spacing.lg,
+              }}
+            >
+              {notice}
+            </Text>
+          ) : null}
 
           <Button title={t('signIn')} onPress={handleSignIn} loading={loading} />
 

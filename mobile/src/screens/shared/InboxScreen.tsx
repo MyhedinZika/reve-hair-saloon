@@ -52,12 +52,12 @@ export function InboxScreen({ onOpenAppointment }: InboxScreenProps): React.JSX.
     <Screen padded={false}>
       <View style={styles.header}>
         <View style={styles.headerRow}>
-          <View>
+          <View style={styles.headerCopy}>
             <Heading level={2}>{t('notifications')}</Heading>
             <MutedText>{t('notificationsSubtitle')}</MutedText>
           </View>
           {hasUnread ? (
-            <Pressable onPress={() => void markAllRead()}>
+            <Pressable hitSlop={8} onPress={() => void markAllRead()} style={styles.markReadButton}>
               <MutedText style={styles.markRead}>{t('markAllRead')}</MutedText>
             </Pressable>
           ) : null}
@@ -122,11 +122,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.md,
   },
+  headerCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  markReadButton: {
+    flexShrink: 0,
+    paddingTop: spacing.xs,
+  },
   markRead: {
     color: colors.accent,
     fontSize: font.size.sm,
     fontWeight: font.weight.semibold,
-    marginTop: spacing.xs,
   },
   content: {
     paddingHorizontal: spacing.xl,
