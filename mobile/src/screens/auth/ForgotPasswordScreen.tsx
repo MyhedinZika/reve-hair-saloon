@@ -10,38 +10,35 @@ import {
   Screen,
 } from '../../theme/components';
 import { LanguageToggle } from '../../components/LanguageToggle';
-import { colors, font, spacing } from '../../theme/tokens';
-import { signUpWithEmail } from '../../auth/api';
+import { sendPasswordReset } from '../../auth/api';
 import { getAuthErrorMessage } from '../../auth/errors';
 import { useI18n } from '../../i18n/I18nContext';
 import type { AuthStackParamList } from '../../navigation/types';
+import { colors, font, spacing } from '../../theme/tokens';
 
-type Props = NativeStackScreenProps<AuthStackParamList, 'SignUp'>;
+type Props = NativeStackScreenProps<AuthStackParamList, 'ForgotPassword'>;
 
-export function SignUpScreen({ navigation }: Props): React.JSX.Element {
+export function ForgotPasswordScreen({ navigation }: Props): React.JSX.Element {
   const { t } = useI18n();
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSignUp = async (): Promise<void> => {
+  const handleSend = async (): Promise<void> => {
     setError(null);
-    if (name.trim().length < 2) {
-      setError(t('signupNameValidation'));
-      return;
-    }
-    if (password.length < 6) {
-      setError(t('passwordValidation'));
+    setSent(false);
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setError(t('passwordResetEmailRequired'));
       return;
     }
     setLoading(true);
     try {
-      await signUpWithEmail(email.trim(), password, name.trim(), phone.trim() || null);
+      await sendPasswordReset(trimmedEmail);
+      setSent(true);
     } catch (err) {
-      setError(getAuthErrorMessage(err, t, 'signUpError'));
+      setError(getAuthErrorMessage(err, t, 'loginError'));
     } finally {
       setLoading(false);
     }
@@ -66,17 +63,11 @@ export function SignUpScreen({ navigation }: Props): React.JSX.Element {
         </View>
 
         <View style={{ marginTop: 34 }}>
-          <Heading level={1}>{t('createAccount')}</Heading>
+          <Heading level={1}>{t('forgotPasswordTitle')}</Heading>
           <MutedText style={{ marginTop: spacing.xs, marginBottom: spacing.xxl }}>
-            {t('signUpDetails')}
+            {t('forgotPasswordSubtitle')}
           </MutedText>
 
-          <Input
-            label={t('fullName')}
-            value={name}
-            onChangeText={setName}
-            placeholder="Amelia Krasniqi"
-          />
           <Input
             label={t('emailAddress')}
             autoCapitalize="none"
@@ -84,43 +75,31 @@ export function SignUpScreen({ navigation }: Props): React.JSX.Element {
             keyboardType="email-address"
             value={email}
             onChangeText={setEmail}
+            errorText={error}
             placeholder="perdoruesi@email.com"
           />
-          <Input
-            label={t('phoneNumber')}
-            keyboardType="phone-pad"
-            value={phone}
-            onChangeText={setPhone}
-            placeholder="+383 4_ ___ ___"
-          />
-          <Input
-            label={t('password')}
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-            errorText={error}
-            placeholder={t('passwordMin')}
-          />
 
-          <Text
-            style={{
-              marginTop: spacing.xs,
-              marginBottom: spacing.xl,
-              color: colors.muted,
-              fontSize: font.size.sm,
-              lineHeight: 18,
-            }}
-          >
-            {t('termsCopy')}
-          </Text>
+          {sent ? (
+            <Text
+              style={{
+                color: colors.success,
+                fontSize: font.size.sm,
+                lineHeight: 18,
+                marginTop: -spacing.xs,
+                marginBottom: spacing.lg,
+              }}
+            >
+              {t('passwordResetSent')}
+            </Text>
+          ) : null}
 
-          <Button title={t('createAccount')} onPress={handleSignUp} loading={loading} />
+          <Button title={t('sendResetLink')} onPress={handleSend} loading={loading} />
         </View>
 
         <View style={{ flex: 1 }} />
 
         <Button
-          title={t('alreadyHaveAccount')}
+          title={t('backToSignIn')}
           variant="ghost"
           onPress={() => navigation.navigate('SignIn')}
           style={{ marginTop: spacing.xl }}

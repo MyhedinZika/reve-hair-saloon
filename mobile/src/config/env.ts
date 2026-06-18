@@ -43,6 +43,7 @@ export const googleAndroidClientId =
   env?.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ??
   '1099495106269-tni008t35k7ltrgb8ragfvs49p604beu.apps.googleusercontent.com';
 export const firebaseFunctionsRegion = 'europe-west1';
+export const expoProjectId = 'fefab8e3-a707-41b9-83a4-209c407e2acd';
 
 const useEmulatorOverride = env?.EXPO_PUBLIC_USE_FIREBASE_EMULATOR;
 

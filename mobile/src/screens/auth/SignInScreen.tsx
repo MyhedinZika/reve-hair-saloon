@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
@@ -11,7 +11,7 @@ import {
 } from '../../theme/components';
 import { LanguageToggle } from '../../components/LanguageToggle';
 import { colors, font, spacing } from '../../theme/tokens';
-import { sendPasswordReset, signInWithEmail } from '../../auth/api';
+import { signInWithEmail } from '../../auth/api';
 import { getAuthErrorMessage } from '../../auth/errors';
 import { useGoogleSignIn } from '../../auth/google';
 import { useI18n } from '../../i18n/I18nContext';
@@ -24,13 +24,16 @@ export function SignInScreen({ navigation }: Props): React.JSX.Element {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const google = useGoogleSignIn();
 
+  useEffect(() => {
+    if (!google.error) return;
+    setError(getAuthErrorMessage(google.error, t, 'loginError'));
+  }, [google.error, t]);
+
   const handleSignIn = async (): Promise<void> => {
     setError(null);
-    setNotice(null);
     setLoading(true);
     try {
       await signInWithEmail(email.trim(), password);
@@ -43,29 +46,10 @@ export function SignInScreen({ navigation }: Props): React.JSX.Element {
 
   const handleGoogle = async (): Promise<void> => {
     setError(null);
-    setNotice(null);
+    google.resetError();
     setLoading(true);
     try {
       await google.prompt();
-    } catch (err) {
-      setError(getAuthErrorMessage(err, t, 'loginError'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleForgotPassword = async (): Promise<void> => {
-    setError(null);
-    setNotice(null);
-    const trimmedEmail = email.trim();
-    if (!trimmedEmail) {
-      setError(t('passwordResetEmailRequired'));
-      return;
-    }
-    setLoading(true);
-    try {
-      await sendPasswordReset(trimmedEmail);
-      setNotice(t('passwordResetSent'));
     } catch (err) {
       setError(getAuthErrorMessage(err, t, 'loginError'));
     } finally {
@@ -79,6 +63,9 @@ export function SignInScreen({ navigation }: Props): React.JSX.Element {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         automaticallyAdjustKeyboardInsets
+        overScrollMode="never"
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl }}
       >
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -101,7 +88,7 @@ export function SignInScreen({ navigation }: Props): React.JSX.Element {
             keyboardType="email-address"
             value={email}
             onChangeText={setEmail}
-            placeholder="amelia.k@email.com"
+            placeholder="perdoruesi@email.com"
           />
           <Input
             label={t('password')}
@@ -115,7 +102,7 @@ export function SignInScreen({ navigation }: Props): React.JSX.Element {
           <Pressable
             accessibilityRole="button"
             disabled={loading}
-            onPress={handleForgotPassword}
+            onPress={() => navigation.navigate('ForgotPassword')}
             style={{
               marginTop: -spacing.xs,
               marginBottom: spacing.lg,
@@ -133,20 +120,6 @@ export function SignInScreen({ navigation }: Props): React.JSX.Element {
               {t('forgotPassword')}
             </Text>
           </Pressable>
-
-          {notice ? (
-            <Text
-              style={{
-                color: colors.success,
-                fontSize: font.size.sm,
-                lineHeight: 18,
-                marginTop: -spacing.sm,
-                marginBottom: spacing.lg,
-              }}
-            >
-              {notice}
-            </Text>
-          ) : null}
 
           <Button title={t('signIn')} onPress={handleSignIn} loading={loading} />
 
@@ -167,6 +140,7 @@ export function SignInScreen({ navigation }: Props): React.JSX.Element {
             title={t('continueWithGoogle')}
             variant="secondary"
             onPress={handleGoogle}
+            loading={google.signingIn}
             disabled={!google.ready || loading}
           />
         </View>

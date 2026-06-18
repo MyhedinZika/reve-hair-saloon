@@ -1,7 +1,8 @@
-import { getMessaging } from 'firebase-admin/messaging';
 import { logger } from 'firebase-functions';
 import type { NotificationDoc } from '@salon/shared';
 import { collections } from './db';
+
+const EXPO_PUSH_ENDPOINT = 'https://exp.host/--/api/v2/push/send';
 
 interface SendNotificationArgs {
   recipientUid: string;
@@ -30,16 +31,54 @@ export async function sendNotification(args: SendNotificationArgs): Promise<void
   const token = userSnap.data()?.fcmToken;
   if (!token) return;
 
+  await sendExpoPush(token, args);
+}
+
+function isExpoPushToken(token: string): boolean {
+  return token.startsWith('ExponentPushToken[') || token.startsWith('ExpoPushToken[');
+}
+
+async function sendExpoPush(token: string, args: SendNotificationArgs): Promise<void> {
+  if (!isExpoPushToken(token)) {
+    logger.warn('Skipping non-Expo push token', {
+      recipientUid: args.recipientUid,
+      tokenPrefix: token.slice(0, 16),
+    });
+    return;
+  }
+
   try {
-    await getMessaging().send({
-      token,
-      notification: { title: args.title, body: args.body },
-      data: {
-        kind: args.kind,
-        appointmentId: args.appointmentId ?? '',
+    const res = await fetch(EXPO_PUSH_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        to: token,
+        sound: 'default',
+        title: args.title,
+        body: args.body,
+        data: {
+          kind: args.kind,
+          appointmentId: args.appointmentId ?? '',
+        },
+      }),
+    });
+    const payload = await res.text();
+    if (!res.ok) {
+      logger.warn('Expo push send failed', {
+        recipientUid: args.recipientUid,
+        status: res.status,
+        payload,
+      });
+      return;
+    }
+    logger.info('Expo push send queued', {
+      recipientUid: args.recipientUid,
+      payload,
     });
   } catch (err) {
-    logger.warn('FCM send failed', { recipientUid: args.recipientUid, err });
+    logger.warn('Expo push send failed', { recipientUid: args.recipientUid, err });
   }
 }

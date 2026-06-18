@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { doc, updateDoc } from 'firebase/firestore';
 import { firestore } from '../config/firebase';
+import { expoProjectId } from '../config/env';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -31,7 +32,7 @@ export async function registerForPushNotifications(uid: string): Promise<void> {
   if (!granted) return;
 
   try {
-    const tokenResult = await Notifications.getDevicePushTokenAsync();
+    const tokenResult = await Notifications.getExpoPushTokenAsync({ projectId: expoProjectId });
     const token = tokenResult.data;
     if (typeof token === 'string' && token.length > 0) {
       await updateDoc(doc(firestore, 'users', uid), { fcmToken: token });

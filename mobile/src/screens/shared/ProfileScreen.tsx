@@ -64,18 +64,6 @@ export function ProfileScreen(): React.JSX.Element {
     );
   };
 
-  const handleExport = async (): Promise<void> => {
-    try {
-      const result = await api.exportClientHistory();
-      Alert.alert(
-        t('exportReady'),
-        t('exportReadyBody', { count: result.appointments.length }),
-      );
-    } catch (err) {
-      Alert.alert(t('exportFailed'), err instanceof Error ? err.message : t('unknownError'));
-    }
-  };
-
   if (!profile) {
     return (
       <Screen>
@@ -110,12 +98,6 @@ export function ProfileScreen(): React.JSX.Element {
       </Card>
 
       <View style={{ height: spacing.xl }} />
-
-      {profile.role === 'client' ? (
-        <Button title={t('exportMyData')} variant="secondary" onPress={handleExport} />
-      ) : null}
-
-      <View style={{ height: spacing.md }} />
 
       <Button title={t('signOut')} variant="ghost" onPress={() => void signOut()} />
 
