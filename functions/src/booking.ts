@@ -258,8 +258,8 @@ async function createAppointmentInternal(
   if (clientId) {
     await sendNotification({
       recipientUid: clientId,
-      title: 'Booking confirmed',
-      body: 'Your appointment is set.',
+      title: 'Rezervimi u konfirmua',
+      body: 'Termini yt është caktuar.',
       kind: 'bookingConfirmed',
       appointmentId: appointmentRef.id,
     });
@@ -270,8 +270,8 @@ async function createAppointmentInternal(
   if (barberUserId && barberUserId !== clientId && barberUserId !== ctx.uid) {
     await sendNotification({
       recipientUid: barberUserId,
-      title: 'New appointment',
-      body: 'A client just booked with you.',
+      title: 'Termin i ri',
+      body: 'Një klient sapo rezervoi me ty.',
       kind: 'bookingConfirmed',
       appointmentId: appointmentRef.id,
     });
@@ -399,8 +399,8 @@ export const cancelAppointment = onCall<CancelAppointmentInput, Promise<{ ok: tr
     if (updated.appointment.clientId && updated.appointment.clientId !== ctx.uid) {
       await sendNotification({
         recipientUid: updated.appointment.clientId,
-        title: 'Appointment cancelled',
-        body: 'Your appointment was cancelled.',
+        title: 'Termini u anulua',
+        body: 'Termini yt u anulua.',
         kind: 'bookingCancelled',
         appointmentId,
       });
@@ -409,8 +409,8 @@ export const cancelAppointment = onCall<CancelAppointmentInput, Promise<{ ok: tr
     if (barberUserId && barberUserId !== ctx.uid) {
       await sendNotification({
         recipientUid: barberUserId,
-        title: 'Appointment cancelled',
-        body: 'A client cancelled their appointment.',
+        title: 'Termini u anulua',
+        body: 'Një klient anuloi terminin.',
         kind: 'bookingCancelled',
         appointmentId,
       });

@@ -26,8 +26,8 @@ export const sendReminders = onSchedule(reminderScheduleOptions, async () => {
     if (a.clientId) {
       await sendNotification({
         recipientUid: a.clientId,
-        title: 'Appointment in 1 hour',
-        body: 'See you soon.',
+        title: 'Termini për 1 orë',
+        body: 'Shihemi së shpejti.',
         kind: 'reminder',
         appointmentId: a.id,
       });
