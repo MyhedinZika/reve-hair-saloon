@@ -37,6 +37,19 @@ export function compareServiceOrder(a: ServiceDoc, b: ServiceDoc): number {
   return (a.createdAt ?? 0) - (b.createdAt ?? 0);
 }
 
+/**
+ * Sort barbers by sortOrder (lower first); barbers without sortOrder fall
+ * to the bottom, ordered by createdAt as a stable tiebreaker.
+ */
+export function compareBarberOrder(a: BarberDoc, b: BarberDoc): number {
+  const aHas = typeof a.sortOrder === 'number';
+  const bHas = typeof b.sortOrder === 'number';
+  if (aHas && bHas) return a.sortOrder! - b.sortOrder!;
+  if (aHas) return -1;
+  if (bHas) return 1;
+  return (a.createdAt ?? 0) - (b.createdAt ?? 0);
+}
+
 function typedDocs<T extends DocumentData>(
   collectionName: string,
   ...constraints: QueryConstraint[]
@@ -63,8 +76,10 @@ function watchTypedDocs<T extends DocumentData>(
 }
 
 export const stores = {
-  listBarbers: (): Promise<BarberDoc[]> =>
-    typedDocs<BarberDoc>('barbers', where('active', '==', true)),
+  listBarbers: async (): Promise<BarberDoc[]> => {
+    const docs = await typedDocs<BarberDoc>('barbers', where('active', '==', true));
+    return docs.sort(compareBarberOrder);
+  },
 
   listServices: async (): Promise<ServiceDoc[]> => {
     const docs = await typedDocs<ServiceDoc>('services', where('active', '==', true));

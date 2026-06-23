@@ -4,7 +4,6 @@ import {
   BodyText,
   Button,
   Card,
-  Divider,
   Heading,
   MutedText,
   Screen,
@@ -86,8 +85,6 @@ export function ProfileScreen(): React.JSX.Element {
         </BodyText>
         {profile.email ? <MutedText>{profile.email}</MutedText> : null}
         {profile.phone ? <MutedText>{profile.phone}</MutedText> : null}
-        <Divider />
-        <MutedText>{t('role', { role: profile.role })}</MutedText>
       </Card>
 
       <View style={{ height: spacing.xl }} />

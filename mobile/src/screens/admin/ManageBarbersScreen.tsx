@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
@@ -24,9 +24,9 @@ import {
   Pill,
   Screen,
 } from '../../theme/components';
-import { colors, font, spacing } from '../../theme/tokens';
+import { colors, font, radius, spacing } from '../../theme/tokens';
 import { firestore } from '../../config/firebase';
-import { compareServiceOrder } from '../../api/firestore';
+import { compareBarberOrder, compareServiceOrder } from '../../api/firestore';
 import { api } from '../../api/functions';
 import { BarberAvatar } from '../../components/BarberAvatar';
 import type { AdminManageStackParamList } from '../../navigation/types';
@@ -60,6 +60,8 @@ export function ManageBarbersScreen(): React.JSX.Element {
     };
   }, []);
 
+  const sorted = useMemo(() => [...barbers].sort(compareBarberOrder), [barbers]);
+
   const create = async (): Promise<void> => {
     if (!name.trim() || !email.trim()) {
       Alert.alert('Missing fields', 'Display name and email are required.');
@@ -80,6 +82,10 @@ export function ManageBarbersScreen(): React.JSX.Element {
       const userDoc = usersSnap.docs[0]!;
       const targetUid = userDoc.id;
       const ref = doc(collection(firestore, 'barbers'));
+      const maxOrder = sorted.reduce(
+        (max, b) => (typeof b.sortOrder === 'number' && b.sortOrder > max ? b.sortOrder : max),
+        -1,
+      );
       const newDoc: BarberDoc = {
         id: ref.id,
         userId: targetUid,
@@ -88,6 +94,7 @@ export function ManageBarbersScreen(): React.JSX.Element {
         serviceIds: Array.from(selected),
         active: true,
         createdAt: Date.now(),
+        sortOrder: maxOrder + 1,
       };
       await setDoc(ref, newDoc);
       await api.setUserRole({ uid: targetUid, role: 'barber' }).catch((err) => {
@@ -195,6 +202,25 @@ export function ManageBarbersScreen(): React.JSX.Element {
     });
   };
 
+  const swapOrder = async (idx: number, direction: -1 | 1): Promise<void> => {
+    const other = idx + direction;
+    if (other < 0 || other >= sorted.length) return;
+    const next = [...sorted];
+    const current = next[idx]!;
+    next[idx] = next[other]!;
+    next[other] = current;
+
+    try {
+      await Promise.all(
+        next
+          .filter((barber, i) => barber.sortOrder !== i)
+          .map((barber, i) => updateDoc(doc(firestore, 'barbers', barber.id), { sortOrder: i })),
+      );
+    } catch (err) {
+      Alert.alert('Could not reorder', err instanceof Error ? err.message : 'Unknown error');
+    }
+  };
+
   return (
     <Screen>
       <ScrollView
@@ -203,11 +229,45 @@ export function ManageBarbersScreen(): React.JSX.Element {
         keyboardDismissMode="interactive"
         automaticallyAdjustKeyboardInsets
       >
-        {barbers.map((b) => {
+        {sorted.length > 1 ? (
+          <MutedText style={{ fontSize: font.size.xs }}>
+            Use the ▲ / ▼ buttons to reorder how barbers appear to clients.
+          </MutedText>
+        ) : null}
+
+        {sorted.map((b, idx) => {
           const isEditing = editingId === b.id;
           return (
             <Card key={b.id} style={{ gap: spacing.md }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+                <View style={styles.reorderCol}>
+                  <Pressable
+                    onPress={() => void swapOrder(idx, -1)}
+                    disabled={idx === 0}
+                    style={[styles.reorderBtn, idx === 0 ? styles.reorderBtnDisabled : null]}
+                    hitSlop={4}
+                  >
+                    <Text style={[styles.reorderText, idx === 0 ? styles.reorderTextDisabled : null]}>▲</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => void swapOrder(idx, 1)}
+                    disabled={idx === sorted.length - 1}
+                    style={[
+                      styles.reorderBtn,
+                      idx === sorted.length - 1 ? styles.reorderBtnDisabled : null,
+                    ]}
+                    hitSlop={4}
+                  >
+                    <Text
+                      style={[
+                        styles.reorderText,
+                        idx === sorted.length - 1 ? styles.reorderTextDisabled : null,
+                      ]}
+                    >
+                      ▼
+                    </Text>
+                  </Pressable>
+                </View>
                 <BarberAvatar avatarUrl={b.avatarUrl} name={b.displayName} size={48} />
                 <View style={{ flex: 1 }}>
                   <BodyText style={{ fontWeight: font.weight.semibold, fontSize: font.size.lg }}>
@@ -320,3 +380,31 @@ export function ManageBarbersScreen(): React.JSX.Element {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  reorderCol: {
+    gap: 6,
+  },
+  reorderBtn: {
+    width: 28,
+    height: 24,
+    borderRadius: radius.sm,
+    backgroundColor: colors.bgAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reorderBtnDisabled: {
+    opacity: 0.4,
+  },
+  reorderText: {
+    color: colors.ink,
+    fontSize: 12,
+    lineHeight: 14,
+    fontWeight: font.weight.semibold,
+  },
+  reorderTextDisabled: {
+    color: colors.muted,
+  },
+});
